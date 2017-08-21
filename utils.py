@@ -33,7 +33,10 @@ class Vector3:
         # fancy algo
         pass
 
-    @propery
+    def __getitem__(self, swizzle):
+        return tuple([self[c] for c in swizzle])
+
+    @property
     def zx(self):
         return (self.z, self.x)
 
