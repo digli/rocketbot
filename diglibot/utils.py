@@ -1,4 +1,5 @@
 import math
+from vectors import Vector3
 
 class Rotation:
     def __init__(self):
@@ -26,29 +27,6 @@ class Rotation:
         # Returns normalized Vector3 facing up
         pass
 
-class Orange(Car):
-    def __init__(self):
-        # Set goal coordinates etc
-
-    def update(self, input):
-        pass
-
-class Blue(Car):
-    def __init__(self):
-        # Set goal coordinates etc
-
-    def update(self, input):
-        self.boost = input[0][0]
-        px = input[0][5]
-        py = input[0][4]
-        pz = input[0][1]
-        self.position.set(px, py, pz)
-        vx = input[0][28]
-        vy = input[0][29]
-        vz = input[0][30]
-        self.velocity.set(vx, vy, vz)
-        self.rotation.values = [i for i in input[0][8:16]]
-
 
 class Car:
     def __init__(self):
@@ -61,6 +39,40 @@ class Car:
     def forward(self):
         return self.rotation.forward
 
+class Orange(Car):
+    #def __init__(self):
+        # Set goal coordinates etc
+        #pass
+
+    def update(self, input):
+        self.boost = input[0][37]
+        px = input[0][17]
+        py = input[0][17]
+        pz = input[0][3]
+        self.position.set(px, py, pz)
+        vx = input[0][34]
+        vy = input[0][35]
+        vz = input[0][36]
+        self.velocity.set(vx, vy, vz)
+        self.rotation.values = [r for r in input[0][19:28]]
+
+class Blue(Car):
+    # def __init__(self):
+        # Set goal coordinates etc
+        #pass
+
+    def update(self, input):
+        self.boost = input[0][0]
+        px = input[0][5]
+        py = input[0][4]
+        pz = input[0][1]
+        self.position.set(px, py, pz)
+        vx = input[0][28]
+        vy = input[0][29]
+        vz = input[0][30]
+        self.velocity.set(vx, vy, vz)
+        self.rotation.values = [r for r in input[0][8:17]]
+
 
 class Ball:
     def __init__(self):
@@ -70,3 +82,10 @@ class Ball:
     def update(self, input):
         self.position.set(input[0][7], input[0][2], input[0][6])
         self.velocity.set(input[0][31], input[0][32], input[0][33])
+
+    def reachable_from_ground(self):
+        return True
+
+    def next_bounce(self):
+        # return ground coordinates? (z, x)
+        pass

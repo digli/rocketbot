@@ -41,7 +41,7 @@ class BoostTracker:
         closest = self.big_boosts[0]
         min_distance = 99999999 # arbitrary big number
         for b in self.big_boosts:
-            distance = b.distance_squared(self.player)
+            distance = b.distance_squared(self.player.position)
             if distance < min_distance:
                 closest = b
                 min_distance = distance
@@ -51,8 +51,8 @@ class BoostTracker:
         for b in self.big_boosts:
             if not b.is_available:
                 continue
-            if (b.distance_squared(self.player) < self.boost_radius_squared or 
-                b.distance_squared(self.opponent) < self.boost_radius_squared):
+            if (b.distance_squared(self.player.position) < self.boost_radius_squared or 
+                b.distance_squared(self.opponent.position) < self.boost_radius_squared):
                 b.pop()
 
 

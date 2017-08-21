@@ -1,4 +1,3 @@
-import math
 from utils import Blue, Orange, Ball
 from boost import BoostTracker
 from strategy import StrategyManager
@@ -16,8 +15,6 @@ debug any runtime issues that occur with your bot.
 # Can this bot's code be shared publicly (Default: No):
 # Can non-tournment gameplay of this bot be displayed publicly (Default: No):
 
-boost_tracker = BoostTracker()
-ball = Ball()
 
 class agent:
     def __init__(self, team):
@@ -28,8 +25,10 @@ class agent:
         else:
             self.player = Orange()
             self.opponent = Blue()
+        self.ball = Ball()
+        self.boost_tracker = BoostTracker(self.player, self.opponent)
         self.strategy_manager = StrategyManager(self.player, self.opponent,
-                                                ball, boost_tracker)
+                                                self.ball, self.boost_tracker)
 
     def get_bot_name(self):
         return "RocketBot"
@@ -37,8 +36,8 @@ class agent:
     def get_output_vector(self, input):
         self.player.update(input)
         self.opponent.update(input)
-        ball.update(input)
-        boost_tracker.update()
+        self.ball.update(input)
+        self.boost_tracker.update()
         self.strategy_manager.update()
 
         return self.strategy_manager.get_output_vector()
