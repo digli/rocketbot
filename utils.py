@@ -1,55 +1,22 @@
 import math
 
-class Vector3:
-    def __init__(self, x=0, y=0, z=0):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def __sub__(self, other):
-        return Vector3(self.x - other.x,
-                       self.y - other.y,
-                       self.z - other.z)
-
-    def __add__(self, other):
-        return Vector3(self.x + other.x,
-                       self.y + other.y,
-                       self.z + other.z)
-
-    def copy(self, other):
-        self.x = other.x
-        self.y = other.y
-        self.z = other.z
-
-    def set(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def clone(self):
-        return Vector3(self.x, self.y, self.z)
-
-    def normalize():
-        # fancy algo
-        pass
-
-    def __getitem__(self, swizzle):
-        return tuple([self[c] for c in swizzle])
-
-    @property
-    def zx(self):
-        return (self.z, self.x)
-
-
 class Rotation:
     def __init__(self):
         self.values = []
+        # values[0]: sin(phi)
+        # values[1]: car.up == world.up ? cos(phi) : -cos(phi)
+        # values[2]: 
+        # values[3]: cos(phi)
+        # values[4]: car.up == world.up ? sin(phi) : -sin(phi)
+        # values[5]: 
+        # values[6]: 
+        # values[7]: 
 
     @property
     def forward(self):
-        # Returns normalized Vector3 (disregarding y) facing forward
-        return math.atan2(self.values[0], self.values[3])
         # alternative
+        return math.atan2(self.values[0], self.values[3])
+        # Returns normalized Vector3 (disregarding y) facing forward
         cos_phi = self.values[3]
         sin_phi = self.values[0]
         return Vector3(x=cos_phi, z=sin_phi)
@@ -58,7 +25,6 @@ class Rotation:
     def up(self):
         # Returns normalized Vector3 facing up
         pass
-
 
 class Orange(Car):
     def __init__(self):
