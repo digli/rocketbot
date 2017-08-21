@@ -46,7 +46,7 @@ class Orange(Car):
 
     def update(self, input):
         self.boost = input[0][37]
-        px = input[0][17]
+        px = input[0][18]
         py = input[0][17]
         pz = input[0][3]
         self.position.set(px, py, pz)

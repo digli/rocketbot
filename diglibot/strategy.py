@@ -22,13 +22,12 @@ def output_vector(yaw, pitch=Controls.MIDDLE, speed=1, jump=0, boost=0, powersli
 def angle_diff(a1, a2):
     return math.atan2(math.sin(a1-a2), math.cos(a1-a2))
 
-def correction_yaw(a1, a2):
-    angle = angle_diff(a1, a2)
-    if (abs(angle) < 0.2):
-        # 0.2 sweet spot? need to find proper deadzone
+def correct_yaw(car, target):
+    angle_to_target = math.atan2(target.x - car.position.x, target.z - car.position.z)
+    diff = angle_diff(car.forward, angle_to_target)
+    if (abs(diff) < 0.1):
         return Controls.MIDDLE
-    return Controls.LEFT if angle < 0 else Controls.RIGHT
-
+    return Controls.LEFT if diff < 0 else Controls.RIGHT
 
 class StrategyManager:
     def __init__(self, player, opponent, ball, boost_tracker):
@@ -81,9 +80,7 @@ class Strategy:
 class GoForBoost(Strategy):
     def get_output_vector(self):
         self.target = self.boost_tracker.closest_big_boost
-        target_vec = Vector3(self.target.x, 0, self.target.z)
-        angle_to_target = math.atan2(*(target_vec - self.player).ground_coords)
-        turn = correction_yaw(angle_to_target, self.player.foward)
+        turn = correct_yaw(self.player, self.target)
         return output_vector(turn, boost=1)
 
     def score(self):
@@ -97,8 +94,7 @@ class GoForSave(Strategy):
 
 class IdleInPlace(Strategy):
     def get_output_vector(self):
-        angle_to_ball = math.atan2(*(self.ball.position - self.player.position).ground_coords)
-        turn = correction_yaw(angle_to_ball, self.player.forward)
+        turn = correct_yaw(self.player, self.ball.position)
         return output_vector(turn, speed=0)
 
     def score(self):
@@ -109,11 +105,10 @@ class GoForScore(Strategy):
     # GROUND BALL CHASING ONLY
     # Jumping and dodging occurs in AttemptAerial
     def get_output_vector(self):
-        angle_to_ball = math.atan2(*(self.ball.position - self.player.position).ground_coords)
         # TODO: take velocity of ball into accord, calculating point of contact
-        turn = correction_yaw(angle_to_ball, self.player.forward)
         # Determine if we should use boost
         boost = 1
+        turn = correct_yaw(self.player, self.ball.position)
         return output_vector(turn, boost=boost)
 
     def score(self):
@@ -126,11 +121,9 @@ class GoForScore(Strategy):
 
 class GoToGoal(Strategy):
     def get_output_vector(self):
-        #self.target = self.player.goal_coords
-        angle_to_target = math.atan2(*(self.target.position - self.player.position).ground_coords)
-        turn = correction_yaw(angle_to_target, self.player.foward)
+        turn = correct_yaw(self.player, self.player.goal_coords)
         # boost or no boost?
-        return output_vector(turn, boost=1)
+        return output_vector(turn)
 
     def score(self):
         # TODO

@@ -34,4 +34,4 @@ class Vector3:
 
     @property
     def ground_coords(self):
-        return (self.z, self.x)
+        return (self.x, self.z)
