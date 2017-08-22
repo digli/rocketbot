@@ -1,5 +1,43 @@
 import math
 
+
+class vec3:
+    def __init__(self, x=0, y=0, z=0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def __sub__(self, other):
+        return vec3(self.x - other.x,
+                    self.y - other.y,
+                    self.z - other.z)
+
+    def __add__(self, other):
+        return vec3(self.x + other.x,
+                    self.y + other.y,
+                    self.z + other.z)
+
+    def copy(self, other):
+        self.x = other.x
+        self.y = other.y
+        self.z = other.z
+
+    def set(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def clone(self):
+        return vec3(self.x, self.y, self.z)
+
+    def normalize(self):
+        # fancy algo
+        pass
+
+    def length(self):
+        return math.sqrt(self.x**2 + self.y**2 + self.z**2)
+
+
 class Rotation:
     def __init__(self):
         self.values = []
@@ -80,53 +118,16 @@ class Ball:
         self.velocity = vec3()
 
     def update(self, input):
-        self.position.set(input[0][7], input[0][2], input[0][6])
-        self.velocity.set(input[0][31], input[0][32], input[0][33])
+        self.position.set(x=input[0][7], y=input[0][6], z=input[0][2])
+        self.velocity.set(x=input[0][31], y=input[0][32], z=input[0][33])
 
     @property
     def ground_direction(self):
-
+        return math.atan2(self.velocity.x, self.velocity.z)
 
     def reachable_from_ground(self):
-        return True
+        return self.position.y < 4
 
     def next_bounce(self):
         # return ground coordinates? (z, x)
         pass
-
-
-class vec3:
-    def __init__(self, x=0, y=0, z=0):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def __sub__(self, other):
-        return vec3(self.x - other.x,
-                    self.y - other.y,
-                    self.z - other.z)
-
-    def __add__(self, other):
-        return vec3(self.x + other.x,
-                    self.y + other.y,
-                    self.z + other.z)
-
-    def copy(self, other):
-        self.x = other.x
-        self.y = other.y
-        self.z = other.z
-
-    def set(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def clone(self):
-        return vec3(self.x, self.y, self.z)
-
-    def normalize(self):
-        # fancy algo
-        pass
-
-    def length(self):
-        return math.sqrt(self.x**2 + self.y**2 + self.z**2)

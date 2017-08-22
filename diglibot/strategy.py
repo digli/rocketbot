@@ -22,37 +22,14 @@ def output_vector(yaw, pitch=Controls.MIDDLE, speed=1, jump=0, boost=0, powersli
 def angle_diff(a1, a2):
     return math.atan2(math.sin(a1-a2), math.cos(a1-a2))
 
-def correct_yaw(car, target, deadzone=0.1):
+def correct_yaw(car, target):
     angle_to_target = math.atan2(target.x - car.position.x, target.z - car.position.z)
     diff = angle_diff(car.forward, angle_to_target)
-    # Might be terribly off
-    correction = Controls.MIDDLE + Controls.MIDDLE * diff
-    return min(max(correction, Controls.MIN), Controls.MAX)
-
-    # also try: DFH Stadium (stormy)
-
-    # drssoccer55 method
-    player_forward = car.forward
-    if (not (abs(player_forward - angle_to_target) < math.pi)):
-        # Add 2pi to negative values
-        if (player_forward < 0):
-            player_forward += 2 * math.pi
-        if (angle_to_target < 0):
-            angle_to_target += 2 * math.pi
-
-    diff = angle_to_target - player_forward
-    if (abs(diff) < deadzone):
-        return Controls.MIDDLE
-    return Controls.LEFT if angle_to_target > player_forward else Controls.RIGHT
-
-    # try this pls
-    sign = (lambda x: (1, -1)[x < 0])(diff)
-    correction = Controls.MIDDLE + sign * Controls.MIDDLE * diff
-    return min(max(correction, Controls.MIN), Controls.MAX)
-
-    # if (abs(diff) < deadzone):
-    #     return Controls.MIDDLE
-    # return Controls.LEFT if diff < 0 else Controls.RIGHT
+    correction = int(Controls.MIDDLE + Controls.MIDDLE * diff * 5)
+    powerslide = 0
+    if abs(diff) > 2.0:
+        powerslide = 1
+    return (min(max(correction, Controls.MIN), Controls.MAX), powerslide)
 
 class StrategyManager:
     def __init__(self, player, opponent, ball, boost_tracker):
@@ -71,7 +48,8 @@ class StrategyManager:
         prev_strat = self.strategy
         self.strategy = self.find_optimal_strategy()
         if prev_strat != self.strategy:
-            print('Change strat') # %s' % self.strategy
+            team = self.strategy.player.__class__.__name__
+            print('{} car changed strat to {}'.format(team, self.strategy.name))
 
     def get_output_vector(self):
         return self.strategy.get_output_vector()
@@ -100,17 +78,19 @@ class Strategy:
     def score(self):
         return 0
 
+    @property
+    def name(self):
+        return self.__class__.__name__
 
 class GoForBoost(Strategy):
     def get_output_vector(self):
         self.target = self.boost_tracker.closest_big_boost
-        turn = correct_yaw(self.player, self.target)
-        return output_vector(turn, boost=1)
+        (turn, powerslide) = correct_yaw(self.player, self.target)
+        return output_vector(turn, boost=1, powerslide=powerslide)
 
     def score(self):
         # maybe 0.2 - boost? (with a maximum of 0.8)
-        return 1 - round(self.player.boost / 100)
-
+        return 0.5 - round(self.player.boost / 100)
 
 class GoForSave(Strategy):
     pass
@@ -131,17 +111,16 @@ class GoForScore(Strategy):
     def get_output_vector(self):
         # TODO: take velocity of ball into accord, calculating point of contact
         # Determine if we should use boost
-        boost = 1
-        turn = correct_yaw(self.player, self.ball.position)
-        return output_vector(turn, boost=boost)
+        (turn, powerslide) = correct_yaw(self.player, self.ball.position)
+        boost = 1 if self.ball.reachable_from_ground() else 0
+        boost = 0 if powerslide else boost 
+        return output_vector(turn, boost=boost, powerslide=powerslide)
 
     def score(self):
-        #if self.player.position.z
-        # TODO
-        # if ball_hit == own_goal:
-        #    return 0
-        return 2
-
+        points = 1 + self.player.boost / 100
+        distance_to_ball = (self.player.position - self.ball.position).length()
+        points -= distance_to_ball / 150
+        return points
 
 class GoToGoal(Strategy):
     def get_output_vector(self):

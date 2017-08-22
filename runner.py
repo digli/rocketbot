@@ -29,9 +29,9 @@ rocketLeagueBaseAddress = rwm.GetBaseAddress(pid)
 processHandle = OpenProcess(PROCESS_ALL_ACCESS, False, pid)
 
 agent1 = DigliBot.agent('blue')
-# agent2 = DigliBot.agent("orange")
+agent2 = DigliBot.agent("orange")
 # agent1 = AlwaysTowardsBallAgent.agent("blue")
-agent2 = AlwaysTowardsBallAgent.agent("orange")
+# agent2 = AlwaysTowardsBallAgent.agent("orange")
 
 rtd = realTimeDisplay.real_time_display()
 rtd.build_initial_window(agent1.get_bot_name(), agent2.get_bot_name())

@@ -1,9 +1,9 @@
 import time
 
 class BigBoost:
-    def __init__(self, z, x):
-        self.z = z
+    def __init__(self, x, z):
         self.x = x
+        self.z = z
         self.taken_timestamp = 0
 
     @property
@@ -16,6 +16,7 @@ class BigBoost:
 
     def pop(self):
         if self.is_available:
+            print('BigBoost({},{}) popped'.format(self.z, self.x))
             self.taken_timestamp = time.time()
 
     def distance_squared(self, other):
@@ -23,7 +24,7 @@ class BigBoost:
 
 class BoostTracker:
     def __init__(self, player, opponent):
-        self.boost_radius_squared = 30 # idk, test this number
+        self.boost_radius_squared = 10 # idk, test this number
         self.player = player
         self.opponent = opponent
         self.big_boosts = [
