@@ -22,12 +22,37 @@ def output_vector(yaw, pitch=Controls.MIDDLE, speed=1, jump=0, boost=0, powersli
 def angle_diff(a1, a2):
     return math.atan2(math.sin(a1-a2), math.cos(a1-a2))
 
-def correct_yaw(car, target):
+def correct_yaw(car, target, deadzone=0.1):
     angle_to_target = math.atan2(target.x - car.position.x, target.z - car.position.z)
     diff = angle_diff(car.forward, angle_to_target)
-    if (abs(diff) < 0.1):
+    # Might be terribly off
+    correction = Controls.MIDDLE + Controls.MIDDLE * diff
+    return min(max(correction, Controls.MIN), Controls.MAX)
+
+    # also try: DFH Stadium (stormy)
+
+    # drssoccer55 method
+    player_forward = car.forward
+    if (not (abs(player_forward - angle_to_target) < math.pi)):
+        # Add 2pi to negative values
+        if (player_forward < 0):
+            player_forward += 2 * math.pi
+        if (angle_to_target < 0):
+            angle_to_target += 2 * math.pi
+
+    diff = angle_to_target - player_forward
+    if (abs(diff) < deadzone):
         return Controls.MIDDLE
-    return Controls.LEFT if diff < 0 else Controls.RIGHT
+    return Controls.LEFT if angle_to_target > player_forward else Controls.RIGHT
+
+    # try this pls
+    sign = (lambda x: (1, -1)[x < 0])(diff)
+    correction = Controls.MIDDLE + sign * Controls.MIDDLE * diff
+    return min(max(correction, Controls.MIN), Controls.MAX)
+
+    # if (abs(diff) < deadzone):
+    #     return Controls.MIDDLE
+    # return Controls.LEFT if diff < 0 else Controls.RIGHT
 
 class StrategyManager:
     def __init__(self, player, opponent, ball, boost_tracker):
@@ -37,8 +62,7 @@ class StrategyManager:
             GoForSave(*args),
             GoForBoost(*args),
             GoToGoal(*args),
-            IdleInPlace(*args),
-            GoToGoal(*args)
+            IdleInPlace(*args)
         ]
         # Chase ball at game start
         self.strategy = self.options[0]

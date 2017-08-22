@@ -31,7 +31,7 @@ class agent:
                                                 self.ball, self.boost_tracker)
 
     def get_bot_name(self):
-        return "RocketBot"
+        return "DigliBot"
 
     def get_output_vector(self, input):
         self.player.update(input)
