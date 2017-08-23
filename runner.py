@@ -15,6 +15,7 @@ import os
 sys.path.insert(0, os.path.abspath("./diglibot"))
 
 from diglibot import DigliBot
+from diglibot import PassiveAgent
 ############ /DigliBot
 
 OpenProcess = windll.kernel32.OpenProcess
@@ -30,6 +31,7 @@ processHandle = OpenProcess(PROCESS_ALL_ACCESS, False, pid)
 
 agent1 = DigliBot.agent('blue')
 agent2 = DigliBot.agent("orange")
+# agent2 = PassiveAgent.agent('orange')
 # agent1 = AlwaysTowardsBallAgent.agent("blue")
 # agent2 = AlwaysTowardsBallAgent.agent("orange")
 

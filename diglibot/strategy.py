@@ -1,5 +1,6 @@
 import math
 import functools
+from utils import vec3
 
 class Controls:
     MAX = 32767
@@ -26,9 +27,9 @@ def angle_diff(a1, a2):
 def correct_yaw(car, target):
     angle_to_target = math.atan2(target.x - car.position.x, target.z - car.position.z)
     diff = angle_diff(car.forward, angle_to_target)
-    correction = int(Controls.MIDDLE + Controls.MIDDLE * diff * 5)
+    correction = int(Controls.MIDDLE + Controls.MIDDLE * diff * 7)
     correction = min(max(correction, Controls.MIN), Controls.MAX)
-    powerslide = int(abs(diff) > 2.0)
+    powerslide = int(abs(diff) > 1.8)
     return (correction, powerslide)
 
 
@@ -55,8 +56,9 @@ class StrategyManager:
         return self.strategy.get_output_vector()
 
     def find_optimal_strategy(self):
-        gt = lambda a, b: return a.score() > b.score()
-        return functools.reduce(lambda a, b: a if gt(a, b) else b, self.options)
+        return max(self.options, key=lambda a: a.score())
+        # gt = lambda a, b: return a.score() > b.score()
+        # return functools.reduce(lambda a, b: a if gt(a, b) else b, self.options)
 
 
 class Strategy:
@@ -71,6 +73,7 @@ class Strategy:
 
     def on_change(self):
         print('{0.player!s} changed strat to {0!s}'.format(self))
+        print('{!s} has {} boost'.format(self.player, self.player.boost))
         self.initiate_strategy()
 
     # Override following functions
@@ -86,21 +89,28 @@ class Strategy:
 
 class GoForBoost(Strategy):
     def initiate_strategy(self):
-        self.target = self.boost_tracker.closest_big_boost()
-        print('Closest big boost: ({0.x}, {0.z})'.format(self.target))
+        print('Closest big boost: {!s}'.format(self.target.position))
 
     def get_output_vector(self):
-        ########### TODO: CHECK HERE #############
-        # TEST SWITCHING BOOST COORDINATES: (because idk what's wrong here)
-        t = (self.target.z, self.target.x)
-        (turn, powerslide) = correct_yaw(self.player, t)
-        # (turn, powerslide) = correct_yaw(self.player, self.target)
+        if not self.target.is_available():
+            self.target = self.boost_tracker.closest_big_boost()
+            # if self.target is None: CHANGE STRAT
+            print('Boost taken. New target: {!s}'.format(self.target.position))
+        (turn, powerslide) = correct_yaw(self.player, self.target.position)
         # boosting while powersliding is redundant
         boost = 1 ^ powerslide
-        return output_vector(turn, boost=boost, powerslide=powerslide)
+        return output_vector(turn, speed=1, boost=boost, powerslide=powerslide)
 
     def score(self):
-        return 0.5 - self.player.boost / 100
+        self.target = self.boost_tracker.closest_big_boost()
+        if self.target is None:
+            # No available boosts
+            return 0
+        dist = (self.player.position - self.target.position).length()
+        points = 1
+        points -= dist / 150
+        points -= self.player.boost / 100
+        return points
 
 
 class GoForSave(Strategy):
@@ -164,7 +174,7 @@ class Retreat(Strategy):
     def score(self):
         if abs(self.goal_coords.z) - abs(self.player.z) < 20:
             return 0
-        if (self.player.position - self.ball.position).length_squared() >
+        if (self.player.position - self.ball.position).length_squared() > \
             (self.opponent.position - self.ball.position).length_squared():
             # return some variable score
             return 0.5

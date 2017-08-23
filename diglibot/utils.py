@@ -50,6 +50,9 @@ class vec3:
     def length(self):
         return math.sqrt(self.x**2 + self.y**2 + self.z**2)
 
+    def __str__(self):
+        return '({}, {}, {})'.format(self.x, self.y, self.z)
+
 
 class Rotation:
     def __init__(self):
@@ -105,7 +108,7 @@ class Car:
 
 class Orange(Car):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
         self.goal_coords = vec3(z=102.4)
 
     def read_input(self, input):
@@ -117,7 +120,7 @@ class Orange(Car):
 
 class Blue(Car):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
         self.goal_coords = vec3(z=-102.4)
 
     def read_input(self, input):
@@ -146,7 +149,7 @@ class Ball:
         pass
 
     def going_into_goal(self, goal_z):
-        if goal_z * math.cos(self.ground_direction) < 0
+        if goal_z * math.cos(self.ground_direction) < 0:
             # Opposite direction
             return False
         distance_to_wall = goal_z - self.position.z
