@@ -26,10 +26,9 @@ def correct_yaw(car, target):
     angle_to_target = math.atan2(target.x - car.position.x, target.z - car.position.z)
     diff = angle_diff(car.forward, angle_to_target)
     correction = int(Controls.MIDDLE + Controls.MIDDLE * diff * 5)
-    powerslide = 0
-    if abs(diff) > 2.0:
-        powerslide = 1
-    return (min(max(correction, Controls.MIN), Controls.MAX), powerslide)
+    correction = min(max(correction, Controls.MIN), Controls.MAX)
+    powerslide = 1 if abs(diff) > 2.0 else 0
+    return (correction, powerslide)
 
 class StrategyManager:
     def __init__(self, player, opponent, ball, boost_tracker):
