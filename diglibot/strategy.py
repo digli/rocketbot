@@ -25,7 +25,7 @@ class StrategyManager:
         ]
         # Chase ball at game start
         self.strategy = self.options[0]
-        self.emergency_strategy = DodgeTowards(agent, agent.ball.position)
+        self.emergency_strategy = KickOff(agent, agent.ball.position)
 
     def update(self):
         # Highest priority: Emergency Strategy
@@ -90,7 +90,8 @@ class GoForBoost(Strategy):
             print('Boost taken. New target: {!s}'.format(self.target.position))
         (turn, powerslide) = correct_yaw(self.player, self.target.position)
         dist_to_boost = (self.player.position - self.target.position).length()
-        if (self.player.boost < 5 and self.player.on_ground() and dist_to_boost > 40):
+        if (self.player.boost < 5 and self.player.on_ground() 
+            and dist_to_boost > 30 and not powerslide):
             # Should probably take car speed into account when checking dist_to_boost
             # check if we're on ground? might get stuck in weird jumping patterns lol
             # TODO: TESTING, could be shit

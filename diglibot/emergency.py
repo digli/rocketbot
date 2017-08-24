@@ -9,6 +9,8 @@ class EmergencyStrategy:
     def __init__(self, agent, target):
         # :param target: vec3
         self.agent = agent
+        if not isinstance(target, vec3):
+            print('{} is not vec3'.format(target))
         self.target = target
         print('{!s} initiated emergency {!s}'.format(agent.player, self))
 
@@ -28,16 +30,35 @@ class EmergencyStrategy:
 
 
 class KickOff(EmergencyStrategy):
-    # TODO
-    # Boost towards ball (speed-dodge?), dodge into ball
-    # Maybe dont dodge if other player is far away?
-    # also, dodge ball into goal angle?
-    pass
+    def __init__(self, agent, target):
+        super().__init__(agent, target)
+        self.starting_position = self.agent.player.position.clone()
+
+    def get_output_vector(self):
+        diff = angle.car_to_target(self.agent.player, self.target)
+        correction = int(STICK_MIDDLE + STICK_MIDDLE * diff * YAW_SENSITIVITY)
+        correction = min(max(correction, STICK_MIN), STICK_MAX)
+        # Boost towards ball (speed-dodge?), dodge into ball
+        # Maybe dont dodge if other player is far away?
+        # also, dodge ball into goal angle?
+        return output.generate(yaw=correction, boost=True)
+
+    def is_finished(self):
+        if (self.starting_position - self.agent.player.position).length_squared() > 50**2:
+            # Calibration error
+            self.starting_position = self.agent.player.position.clone()
+
+        # how long again?
+        return (self.starting_position - self.agent.player.position).length_squared() > 6**2
+
+    def suggest_next_strategy(self):
+        return DodgeTowards(self.agent, self.target)
 
 
 class NoFlip(EmergencyStrategy):
     # Also known as Air Dash
     # Ok so this works well IF player has boost
+    # and not so well for kickoffs
     def __init__(self, agent, target):
         super().__init__(agent, target)
         self.dodge_timer = DodgeTimer(d0=0.37)
@@ -52,11 +73,11 @@ class NoFlip(EmergencyStrategy):
         return output.generate(pitch=pitch, boost=boost, jump=jump)
 
     def is_finished(self):
-        return time.time() - self.dodge_timer.start > 1.7 # arbitrary again
-        return self.dodge_timer.is_finished()
-        return self.agent.player.on_ground()
+        # arbitrary again
+        return time.time() - self.dodge_timer.start > 1.7 and self.agent.player.on_ground()
 
     def suggest_next_strategy(self):
+        return DodgeTowards(self.agent, self.target)
         return Idle(self.agent, self.target)
 
 class DodgeTowards(EmergencyStrategy):
@@ -78,9 +99,10 @@ class DodgeTowards(EmergencyStrategy):
         return output.generate(yaw=turn, pitch=pitch, boost=boost, jump=jump)
 
     def is_finished(self):
-        return self.dodge_timer.is_finished()
+        return self.dodge_timer.is_finished() and self.agent.player.on_ground()
 
     def suggest_next_strategy(self):
+        return None
         # return None
         return Idle(self.agent, self.target)
         # Try this later
