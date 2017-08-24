@@ -1,4 +1,4 @@
-from utils import Blue, Orange, Ball
+from gameobjects import Blue, Orange, Ball
 from boost import BoostTracker
 from strategy import StrategyManager
 
@@ -27,8 +27,7 @@ class agent:
             self.opponent = Blue()
         self.ball = Ball()
         self.boost_tracker = BoostTracker(self.player, self.opponent)
-        self.strategy_manager = StrategyManager(self.player, self.opponent,
-                                                self.ball, self.boost_tracker)
+        self.strategy_manager = StrategyManager(self)
 
     def get_bot_name(self):
         return "DigliBot"
@@ -41,3 +40,6 @@ class agent:
         self.strategy_manager.update()
 
         return self.strategy_manager.get_output_vector()
+
+    def trigger_emergency(self, emergency):
+        self.strategy_manager.emergency_strategy = emergency
