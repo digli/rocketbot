@@ -25,6 +25,16 @@ class Car:
     def on_ground(self):
         return self.position.y < 0.5 # arbitrary testing number
 
+    def relative_velocity_to(self, other):
+        # Not tested, stolen from GooseFairy
+        pos = self.position - other.position
+        vel = self.velocity - other.velocity
+        distance = pos.length()
+        if distance != 0:
+            return (pos.x * vel.x + pos.z * vel.z) / distance
+        else:
+            return 0
+
     @property
     def pitch(self):
         return self.rotation.pitch
