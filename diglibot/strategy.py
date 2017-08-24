@@ -41,7 +41,8 @@ class StrategyManager:
             GoForSave(*args),
             GoForBoost(*args),
             GoToGoal(*args),
-            IdleInPlace(*args)
+            IdleInPlace(*args),
+            Retreat(*args)
         ]
         # Chase ball at game start
         self.strategy = self.options[0]
