@@ -2,8 +2,13 @@ import time
 from utils import angle, vec3, output
 
 class EmergencyStrategy:
-	# ONLY STRATEGIES THAT ABSOLUTELY NEED TO FINISH BEFORE CHANGING
+	# STRATEGIES THAT ABSOLUTELY NEED TO FINISH BEFORE CHANGING
 	# No score() function, can only be triggered by other strategies
+	def __init__(self, agent, target):
+		self.agent = agent
+		self.target = target
+		print('{!s} initiated emergency {!s}'.format(agent.player, self))
+
 	def get_output_vector(self):
 		print('{!s} missing implementation: get_output_vector()'.format(self))
 		pass
@@ -36,9 +41,7 @@ class NoFlip(EmergencyStrategy):
 	# dodge, min pitch
 	# then immediately: max pitch until stabilized
 	def __init__(self, agent, target):
-		self.agent = agent
-		# who cares about target, STRAIGHT FORWARD WE GO
-		self.target = target
+		super().__init__(agent, target)
         self.first_jump = time.time()
         self.buffer_between_jumps = False
         self.is_dodging = False
@@ -67,9 +70,7 @@ class NoFlip(EmergencyStrategy):
 
 class DodgeTorwards(EmergencyStrategy):
 	def __init__(self, agent, target):
-        print('{!s} dodging forward'.format(self.agent.player))
-		self.agent = agent
-		self.target = target
+		super().__init__(agent, target)
         self.first_jump = time.time()
         self.buffer_between_jumps = False
         self.is_dodging = False
