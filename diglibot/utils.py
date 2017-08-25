@@ -2,27 +2,32 @@ import math
 from constants import *
 
 class output:
-    @classmethod
-    def generate(self, yaw=STICK_MIDDLE, pitch=STICK_MIDDLE, speed=1, 
-                 jump=False, boost=False, powerslide=False):
-        acceleration = int(round(speed * STICK_MAX)) if speed > 0 else 0
-        retardation = int(round(abs(speed) * STICK_MAX)) if speed < 0 else 0
-        jump = int(jump)
-        boost = int(boost)
-        powerslide = int(powerslide)
-        return [yaw, pitch, acceleration, retardation, jump, boost, powerslide]
+    # yaw, pitch and speed will be clamped to [-1, 1]
+    def __init__(self, yaw=0, pitch=0, speed=1, jump=False, boost=False, powerslide=False):
+        self.yaw = yaw
+        self.pitch = pitch
+        self.speed = speed
+        self.jump = jump
+        self.boost = boost
+        self.powerslide = powerslide
 
-class angle:
-    @classmethod
-    def diff(self, a1, a2):
-        # Returns radian in range (-math.pi, math.pi)
-        return math.atan2(math.sin(a1-a2), math.cos(a1-a2))
+    def normalize_stick(self, value):
+        return self.clamp(STICK_MIDDLE + STICK_MIDDLE * value)
 
-    @classmethod
-    def car_to_target(self, car, target_position):
-        direction = target_position - car.position
-        angle_to_target = math.atan2(direction.x, direction.z)
-        return self.diff(car.forward, angle_to_target)
+    def clamp(self, value):
+        return min(max(int(value), STICK_MIN), STICK_MAX)
+
+    def generate_vector(self):
+        return [
+            self.normalize_stick(self.yaw),
+            self.normalize_stick(self.pitch),
+            self.clamp(self.speed * STICK_MAX) if self.speed > 0 else 0,
+            self.clamp(abs(self.speed) * STICK_MAX) if self.speed < 0 else 0,
+            int(self.jump),
+            int(self.boost),
+            int(self.powerslide)
+        ]
+
 
 class vec3:
     def __init__(self, x=0, y=0, z=0):
@@ -31,14 +36,10 @@ class vec3:
         self.z = z
 
     def __sub__(self, other):
-        return vec3(self.x - other.x,
-                    self.y - other.y,
-                    self.z - other.z)
+        return vec3(self.x - other.x, self.y - other.y, self.z - other.z)
 
     def __add__(self, other):
-        return vec3(self.x + other.x,
-                    self.y + other.y,
-                    self.z + other.z)
+        return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def copy(self, other):
         self.x = other.x
@@ -54,8 +55,13 @@ class vec3:
         return vec3(self.x, self.y, self.z)
 
     def normalize(self):
-        # fancy algo
-        pass
+        length = self.length()
+        if length == 0:
+            print('Cant normalize vec3, length is 0')
+            return None
+        self.x /= length
+        self.y /= length
+        self.z /= length
 
     def length_squared(self):
         # idk how slow math.sqrt is
@@ -81,17 +87,14 @@ class Rotation:
         # values[7]: 
         # values[8]: cos(pitch&roll)
 
-    @property
     def pitch(self):
         return self.values[6]
 
-    @property
     def forward(self):
         # Returns a world space angle on x,z plane
         return math.atan2(self.values[0], self.values[3])
 
-    @property
     def up(self):
         # Returns normalized vec3 facing up
+        print('Rotation.up not implemented')
         pass
-

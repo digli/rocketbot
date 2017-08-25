@@ -1,21 +1,23 @@
 import time
-from utils import vec3
 from constants import *
+from utils import vec3
 
 class BigBoost:
     def __init__(self, x, z):
         self.position = vec3(x=x, z=z)
         self.taken_timestamp = 0
 
+    def __str__(self):
+        return 'BigBoost({}, {})'.format(self.position.x, self.position.z)
+
     def seconds_since_pop(self):
         return time.time() - self.taken_timestamp
 
     def is_available(self):
-        return self.seconds_since_pop() >= 10 # 10 seconds respawn time
+        return self.seconds_since_pop() >= BIG_BOOST_RESPAWN_TIME
 
     def pop(self):
         if self.is_available():
-            print('BigBoost {!s} popped'.format(self.position))
             self.taken_timestamp = time.time()
 
     def distance_squared(self, other):

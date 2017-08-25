@@ -6,7 +6,7 @@ JUMP_DODGING = 2
 JUMP_FINISHED = 3
 JUMP_TO_DODGE_DT = 0.08 # (seconds) __test this__
 UPDATE_BUFFER = 1 / 60 # one frame should be enough right?
-
+# UPDATE_BUFFER = 0.03
 
 class DodgeTimer:
     def __init__(self, d0=JUMP_TO_DODGE_DT, d1=UPDATE_BUFFER, d2=UPDATE_BUFFER):
