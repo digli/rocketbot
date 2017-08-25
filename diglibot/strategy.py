@@ -1,16 +1,8 @@
 import math
 import time
 from constants import *
-from utils import vec3, angle, output
+from utils import vec3, output
 from emergency import *
-
-
-def correct_yaw(car, target):
-    diff = angle.car_to_target(car, target)
-    correction = int(STICK_MIDDLE + STICK_MIDDLE * diff * YAW_SENSITIVITY)
-    correction = min(max(correction, STICK_MIN), STICK_MAX)
-    powerslide = abs(diff) > POWERSLIDE_THRESHOLD # TODO: try different values here
-    return (correction, powerslide)
 
 
 class StrategyManager:
@@ -42,10 +34,10 @@ class StrategyManager:
         if self.emergency_strategy is not None and self.emergency_strategy.is_finished():
             self.emergency_strategy = self.emergency_strategy.suggest_next_strategy()
 
-    def get_output_vector(self):
+    def get_output(self):
         if self.emergency_strategy is not None:
-            return self.emergency_strategy.get_output_vector()
-        return self.strategy.get_output_vector()
+            return self.emergency_strategy.get_output()
+        return self.strategy.get_output()
 
     def find_optimal_strategy(self):
         return max(self.options, key=lambda a: a.score())
@@ -72,35 +64,30 @@ class Strategy:
     def initiate_strategy(self):
         pass
 
-    def get_output_vector(self):
-        return output.generate()
+    def get_output(self):
+        return output()
 
     def score(self):
         return 0
 
 
 class GoForBoost(Strategy):
-    def initiate_strategy(self):
-        print('Closest big boost: {!s}'.format(self.target.position))
-
-    def get_output_vector(self):
+    def get_output(self):
         if not self.target.is_available():
             self.target = self.boost_tracker.closest_big_boost()
-            # if self.target is None: CHANGE STRAT
-            print('Boost taken. New target: {!s}'.format(self.target.position))
-        (turn, powerslide) = correct_yaw(self.player, self.target.position)
-        dist_to_boost = (self.player.position - self.target.position).length()
-        if (self.player.boost < 5 and self.player.on_ground() 
-            and dist_to_boost > 30 and not powerslide):
-            # Should probably take car speed into account when checking dist_to_boost
-            # check if we're on ground? might get stuck in weird jumping patterns lol
-            # TODO: TESTING, could be shit
+            # target cannot be None here, boost cant be popped between score()
+            # and this function.
+        angle = self.player.angle_to(self.target.position)
+        if (self.player.should_dodge_to(self.target.position) 
+            and abs(angle) < 0.5):
             dodge_strategy = DodgeTowards(self.agent, self.target.position)
             self.agent.trigger_emergency(dodge_strategy)
-            return dodge_strategy.get_output_vector()
+            return dodge_strategy.get_output()
+        turn = angle * YAW_SENSITIVITY
+        powerslide = self.car.should_powerslide(angle)
         # boosting while powersliding is redundant
-        boost = not powerslide
-        return output.generate(yaw=turn, speed=1, boost=boost, powerslide=powerslide)
+        boost = not powerslide and self.player.below_max_speed()
+        return output(yaw=turn, speed=1, boost=boost, powerslide=powerslide)
 
     def score(self):
         self.target = self.boost_tracker.closest_big_boost()
@@ -124,25 +111,25 @@ class GoForSave(Strategy):
 
 
 class IdleInPlace(Strategy):
-    def get_output_vector(self):
-        (turn, powerslide) = correct_yaw(self.player, self.ball.position)
-        return output.generate(yaw=turn, speed=0, powerslide=powerslide)
+    def get_output(self):
+        return output(speed=0)
 
     def score(self):
-        # TODO
         return 0
 
 
 class GoForScore(Strategy):
     # GROUND BALL CHASING ONLY
     # Jumping and dodging occurs in AttemptAerial
-    def get_output_vector(self):
+    def get_output(self):
         # TODO: take velocity of ball into accord, calculating point of contact
         # Determine if we should use boost
-        (turn, powerslide) = correct_yaw(self.player, self.ball.position)
-        boost = self.player.below_max_speed() and self.ball.reachable_from_ground() 
+        angle = self.player.angle_to(self.ball.position)
+        turn = angle * YAW_SENSITIVITY
+        powerslide = self.player.should_powerslide(angle)
+        boost = self.player.below_max_speed() and self.ball.reachable_from_ground()
         boost = boost and not powerslide
-        return output.generate(yaw=turn, boost=boost, powerslide=powerslide)
+        return output(yaw=turn, boost=boost, powerslide=powerslide)
 
     def score(self):
         # needs a lot of work
@@ -153,10 +140,12 @@ class GoForScore(Strategy):
 
 
 class GoToGoal(Strategy):
-    def get_output_vector(self):
-        (turn, powerslide) = correct_yaw(self.player, self.player.goal_coords)
-        boost = self.car.speed < 40
-        return output.generate(yaw=turn, boost=boost, powerslide=powerslide)
+    def get_output(self):
+        angle = self.player.angle_to(self.player.goal_coords)
+        turn = angle * YAW_SENSITIVITY
+        powerslide = self.player.should_powerslide(angle)
+        boost = self.player.below_max_speed()
+        return output(yaw=turn, boost=boost, powerslide=powerslide)
 
     def score(self):
         # TODO
@@ -166,12 +155,14 @@ class GoToGoal(Strategy):
 class Retreat(Strategy):
     # Should we avoid hitting ball?
     # Or should that be covered by GoForSave strategy
-    def get_output_vector(self):
+    def get_output(self):
         self.target = self.player.position.clone()
         # magic number 0.9 to stop car from running up the wall
         self.target.z = self.player.goal_coords.z * 0.9
-        (turn, powerslide) = correct_yaw(self.player, target)
-        return output.generate(yaw=turn, powerslide=powerslide)
+        angle = self.player.angle_to(self.target.position)
+        turn = angle * YAW_SENSITIVITY
+        powerslide = self.player.should_powerslide(angle)
+        return output(yaw=turn, powerslide=powerslide)
 
     def score(self):
         return 0

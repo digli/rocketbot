@@ -1,5 +1,5 @@
 import time
-from utils import angle, vec3, output
+from utils import vec3, output
 from dodgetimer import *
 from constants import *
 
@@ -14,8 +14,8 @@ class EmergencyStrategy:
         self.target = target
         print('{!s} initiated emergency {!s}'.format(agent.player, self))
 
-    def get_output_vector(self):
-        print('{!s} missing implementation: get_output_vector()'.format(self))
+    def get_output(self):
+        print('{!s} missing implementation: get_output()'.format(self))
         pass
 
     def is_finished(self):
@@ -31,23 +31,24 @@ class EmergencyStrategy:
 
 class KickOff(EmergencyStrategy):
     def __init__(self, agent, target):
-        super().__init__(agent, target)
+        super().__init__(agent, None)
+        # KickOff target should be somewhere in front of ball
+        self.target = vec3(z=self.agent.player.goal_coords.z * 0.05)
         self.starting_position = self.agent.player.position.clone()
 
-    def get_output_vector(self):
-        diff = angle.car_to_target(self.agent.player, self.target)
-        correction = int(STICK_MIDDLE + STICK_MIDDLE * diff * YAW_SENSITIVITY)
-        correction = min(max(correction, STICK_MIN), STICK_MAX)
+    def get_output(self):
+    	angle = self.player.angle_to(self.target)
+    	turn = angle * KICKOFF_YAW_SENSITIVITY
         # Boost towards ball (speed-dodge?), dodge into ball
         # Maybe dont dodge if other player is far away?
         # also, dodge ball into goal angle?
-        return output.generate(yaw=correction, boost=True)
+        return output(yaw=turn, boost=True)
 
     def is_finished(self):
-        if (self.starting_position - self.agent.player.position).length_squared() > 50**2:
+        if (self.starting_position - self.agent.player.position).length_squared() > 30**2:
             # Calibration error
             self.starting_position = self.agent.player.position.clone()
-
+            return False
         # how long again?
         return (self.starting_position - self.agent.player.position).length_squared() > 6**2
 
@@ -63,14 +64,14 @@ class NoFlip(EmergencyStrategy):
         super().__init__(agent, target)
         self.dodge_timer = DodgeTimer(d0=0.37)
 
-    def get_output_vector(self):
+    def get_output(self):
         pitch = STICK_MAX
         dodge_state = self.dodge_timer.update_state()
         boost = self.agent.player.below_max_speed() and dodge_state != JUMP_BUFFERING
         jump = self.dodge_timer.jump_button()
         if (dodge_state == JUMP_DODGING):
             pitch = STICK_MIN
-        return output.generate(pitch=pitch, boost=boost, jump=jump)
+        return output(pitch=pitch, boost=boost, jump=jump)
 
     def is_finished(self):
         # arbitrary again
@@ -85,18 +86,17 @@ class DodgeTowards(EmergencyStrategy):
         super().__init__(agent, target)
         self.dodge_timer = DodgeTimer()
 
-    def get_output_vector(self):
+    def get_output(self):
         pitch = STICK_MIDDLE
         turn = STICK_MIDDLE
         dodge_state = self.dodge_timer.update_state()
         boost = self.agent.player.below_max_speed() and dodge_state < JUMP_DODGING
         jump = self.dodge_timer.jump_button()
         if dodge_state == JUMP_DODGING:
-            correction = angle.car_to_target(self.agent.player, self.target)
-            turn = int(STICK_MIDDLE + STICK_MIDDLE * correction)
-            turn = min(max(turn, STICK_MIN), STICK_MAX)
+        	angle = self.player.angle_to(self.target)
+        	turn = angle * YAW_SENSITIVITY
             pitch = STICK_MIN # Nose down, maximum velocity here we go
-        return output.generate(yaw=turn, pitch=pitch, boost=boost, jump=jump)
+        return output(yaw=turn, pitch=pitch, boost=boost, jump=jump)
 
     def is_finished(self):
         return self.dodge_timer.is_finished() and self.agent.player.on_ground()
@@ -114,8 +114,8 @@ class Idle(EmergencyStrategy):
         super().__init__(agent, target)
         self.timestamp = time.time()
 
-    def get_output_vector(self):
-        return output.generate(speed=0)
+    def get_output(self):
+        return output(speed=0)
 
     def is_finished(self):
         return time.time() - self.timestamp > 2

@@ -1,6 +1,8 @@
+import math
 
 YAW_SENSITIVITY = 7
-POWERSLIDE_THRESHOLD = 1.8 # Radians
+KICKOFF_YAW_SENSITIVITY = 8
+POWERSLIDE_THRESHOLD = 1.8 # Radians (REMEMBER TO TRY SMALLER VALUES)
 STICK_MAX = 32767
 STICK_MIDDLE = 16383
 STICK_MIN = 0
@@ -16,7 +18,7 @@ GOAL_POST_TOP_X = GOAL_HALF_WIDTH
 GOAL_POST_BOT_X = -GOAL_HALF_WIDTH
 # Dave mentions that goal would be over 24.5 meters with a conversin rate of 3.653
 # https://www.reddit.com/r/RocketLeague/comments/3b00fn/rocket_league_physics_and_field_size/cshs8w1/
-GOAL_HEIGHT = 6.71
+GOAL_HEIGHT = 6.71 * 2
 
 BALL_RADIUS = 1.8555
 
@@ -35,8 +37,13 @@ OCTANE_NET_HEIGHT = 0.3883453
 OCTANE_HITBOX_OFFSET = 0.1387566
 OCTANE_PIVOT_PT_TO_FRONT = 0.7287936
 
+# could possibly be OCTANE_PIVOT_PT_TO_FRONT instead of length but who knows
+ANGLE_TO_BUMPER = math.atan(OCTANE_LENGTH / OCTANE_WIDTH)
+OCTANE_MID_TO_CORNER = math.hypot(OCTANE_LENGTH, OCTANE_WIDTH)
+
 GRAVITY_CONSTANT = 6.5 # m/s^2
-# perhaps 23 is without boost, 51.4 is with boost
-CAR_MAX_SPEED = 51.4 # m/s (can't be correct) 51.4 sounds more like it
+CAR_MAX_SPEED = 46 # m/s
+CAR_MAX_SUPERSONIC_THRESHOLD = CAR_MAX_SPEED - 1.5 # change if needed
 
 DODGE_TIME_LIMIT = 2 # (seconds) according to random guide on steam
+MIN_DODGE_SPEED = 10 # try this out too, could be 20 or smth

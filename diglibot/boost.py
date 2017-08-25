@@ -15,7 +15,6 @@ class BigBoost:
 
     def pop(self):
         if self.is_available():
-            print('BigBoost {!s} popped'.format(self.position))
             self.taken_timestamp = time.time()
 
     def distance_squared(self, other):
