@@ -14,7 +14,7 @@ FIELD_HEIGHT = 40
 GOAL_HALF_WIDTH = FIELD_HALF_X * 0.22 
 GOAL_POST_TOP_X = GOAL_HALF_WIDTH
 GOAL_POST_BOT_X = -GOAL_HALF_WIDTH
-# Dave mentions that goal would be over 24.5 meters with a conversin rate of 3.653
+# Dave mentions that goal would be over 24.5 meters with a conversion rate of 3.653
 # https://www.reddit.com/r/RocketLeague/comments/3b00fn/rocket_league_physics_and_field_size/cshs8w1/
 GOAL_HEIGHT = 6.71
 
@@ -36,7 +36,5 @@ OCTANE_HITBOX_OFFSET = 0.1387566
 OCTANE_PIVOT_PT_TO_FRONT = 0.7287936
 
 GRAVITY_CONSTANT = 6.5 # m/s^2
-# perhaps 23 is without boost, 51.4 is with boost
-CAR_MAX_SPEED = 51.4 # m/s (can't be correct) 51.4 sounds more like it
-
+CAR_MAX_SPEED = 51 # m/s (need testing)
 DODGE_TIME_LIMIT = 2 # (seconds) according to random guide on steam
