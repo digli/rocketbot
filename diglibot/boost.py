@@ -2,29 +2,44 @@ import time
 from constants import *
 from utils import vec3
 
-class BigBoost:
+class Boost:
     def __init__(self, x, z):
         self.position = vec3(x=x, z=z)
         self.taken_timestamp = 0
+        # dummy values, override!
+        self.boost_respawn_time = 0
+        self.boost_radius_squared = 0
 
     def __str__(self):
-        return 'BigBoost({}, {})'.format(self.position.x, self.position.z)
+        return '{0}({1.x}, {1.z})'.format(self.__class__.__name__, self.position)
 
     def seconds_since_pop(self):
         return time.time() - self.taken_timestamp
 
     def is_available(self):
-        return self.seconds_since_pop() >= BIG_BOOST_RESPAWN_TIME
+        return self.seconds_since_pop() >= self.boost_respawn_time
 
     def pop(self):
         if self.is_available():
             self.taken_timestamp = time.time()
 
-    def distance_squared(self, other):
-        return (other - self.position).length_squared()
-
     def in_range_of(self, other):
-        return self.distance_squared(other) < BOOST_RADIUS_SQUARED
+        return (self.position - other).length_squared() < self.boost_radius_squared
+
+
+class SmallBoost(Boost):
+    def __init__(self, x, z):
+        super().__init__(x, z)
+        self.boost_respawn_time = SMALL_BOOST_RESPAWN_TIME
+        self.boost_radius_squared = SMALL_BOOST_RADIUS_SQUARED
+
+
+class BigBoost(Boost):
+    def __init__(self, x, z):
+        super().__init__(x, z)
+        self.boost_respawn_time = BIG_BOOST_RESPAWN_TIME
+        self.boost_radius_squared = BIG_BOOST_RADIUS_SQUARED
+
 
 class BoostTracker:
     def __init__(self, player, opponent):
@@ -40,11 +55,11 @@ class BoostTracker:
         ]
 
     def closest_big_boost(self):
-        pos = self.player.position
         available = [b for b in self.big_boosts if b.is_available()]
         if len(available) == 0:
             return None
-        return min(available, key=lambda b: b.distance_squared(pos))
+        distance = lambda boost: (boost.position - self.player.position).length_squared()
+        return min(available, key=distance)
 
     def update(self):
         for b in self.big_boosts:

@@ -24,8 +24,10 @@ BALL_RADIUS = 1.8555
 BOOST_MIDFIELD_X = 71
 BOOST_CORNER_X = 62
 BOOST_CORNER_Z = 81
-BOOST_RADIUS_SQUARED = 16 # idk, test this number
+BIG_BOOST_RADIUS_SQUARED = 16 # idk, test this number
 BIG_BOOST_RESPAWN_TIME = 10
+SMALL_BOOST_RADIUS_SQUARED = 4 # idk, test this number
+SMALL_BOOST_RESPAWN_TIME = 5 # idk, test this number
 
 # https://docs.google.com/spreadsheets/d/1A6jBshi5szfjIiPFmTbJXzBxtVhxEHPjmKC0xcSCUGk/edit#gid=1536046193
 OCTANE_LENGTH = 1.180074

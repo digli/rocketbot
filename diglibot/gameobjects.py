@@ -2,7 +2,8 @@ import math
 from constants import *
 from utils import vec3, Rotation
 
-class GameObject:
+
+class KineticObject:
     def __init__(self):
         self.position = vec3()
         self.velocity = vec3()
@@ -10,7 +11,8 @@ class GameObject:
     def __str__(self):
         return self.__class__.__name__
 
-class Car(GameObject):
+
+class Car(KineticObject):
     def __init__(self):
         super().__init__()
         self.boost = 0
@@ -66,7 +68,7 @@ class Car(GameObject):
         return self.position.y < 0.5 # arbitrary testing number
 
     def relative_velocity_to(self, other):
-        if isinstance(other, GameObject):
+        if isinstance(other, KineticObject):
             pos = self.position - other.position
             vel = self.velocity - other.velocity
             distance = pos.length()
@@ -83,6 +85,7 @@ class Car(GameObject):
         
         print('Incorrect argument: {}'.format(other))
         return 0
+
 
 class Orange(Car):
     def __init__(self):
@@ -108,7 +111,7 @@ class Blue(Car):
         self.rotation.values = [r for r in input[0][8:17]]
 
 
-class Ball(GameObject):
+class Ball(KineticObject):
     def __init__(self):
         super().__init__()
 
@@ -147,16 +150,3 @@ class Ball(GameObject):
         distance_to_wall = goal_z - self.position.z
         collision_x = self.position.x + math.tan(self.ground_direction) * distance_to_wall
         return abs(collision_x) < GOAL_HALF_WIDTH
-
-
-
-class BallTracker:
-    def __init__(self, ball):
-        self.ball = ball
-        self.position = ball.position
-        self.velocity = ball.velocity
-        self.prev_velocity = self.velocity.clone()
-
-    def estimate_ground_friction(self):
-        # if self.position.y - BALL_RADIUS > 0.2 or self.velocity
-        pass

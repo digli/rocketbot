@@ -31,6 +31,7 @@ processHandle = OpenProcess(PROCESS_ALL_ACCESS, False, pid)
 
 agent1 = DigliBot.agent('blue')
 agent2 = DigliBot.agent("orange")
+# agent1 = PassiveAgent.agent('blue')
 # agent2 = PassiveAgent.agent('orange')
 # agent1 = AlwaysTowardsBallAgent.agent("blue")
 # agent2 = AlwaysTowardsBallAgent.agent("orange")
