@@ -2,28 +2,30 @@ import math
 from constants import *
 from utils import vec3, Rotation
 
-
-class Car:
+class GameObject:
     def __init__(self):
-        self.boost = 0
-        self.speed = 0
         self.position = vec3()
         self.velocity = vec3()
-        self.rotation = Rotation()
-        self.forward = 0
-        self.pitch = 0
-
-    def update(self, input):
-        self.read_input(input)
-        self.speed = self.velocity.length()
-        self.forward = self.rotation.forward
-        self.pitch = self.rotation.pitch
 
     def __str__(self):
         return self.__class__.__name__
 
+class Car(GameObject):
+    def __init__(self):
+        super().__init__()
+        self.boost = 0
+        self.speed = 0
+        self.forward = 0
+        self.pitch = 0
+        self.rotation = Rotation()
+
+    def update(self, input):
+        self.read_input(input)
+        self.speed = self.velocity.length()
+        self.forward = self.rotation.forward()
+        self.pitch = self.rotation.pitch()
+
     def below_max_speed(self):
-        # Add threshold?
         return self.speed < CAR_MAX_SPEED - CAR_MAX_SPEED_THRESHOLD
 
     def should_powerslide(self, angle):
@@ -31,7 +33,7 @@ class Car:
 
     def should_dodge_to(self, target):
         going_too_fast = self.speed > CAR_MAX_SPEED - 5
-        # Factor in velocity somehow
+        # TODO: Factor in velocity somehow
         target_too_close = (self.position - target).length_squared() < 30**2
         going_too_slow = self.speed < MIN_DODGE_SPEED
         if going_too_fast or target_too_close or going_too_slow:
@@ -64,15 +66,23 @@ class Car:
         return self.position.y < 0.1 # arbitrary testing number
 
     def relative_velocity_to(self, other):
-        # Not tested, stolen from GooseFairy
-        pos = self.position - other.position
-        vel = self.velocity - other.velocity
-        distance = pos.length()
-        if distance != 0:
+        if isinstance(other, GameObject):
+            pos = self.position - other.position
+            vel = self.velocity - other.velocity
+            distance = pos.length()
+            if distance == 0:
+                return 0
             return (pos.x * vel.x + pos.z * vel.z) / distance
-        else:
-            return 0
 
+        if isinstance(other, vec3):
+            pos = self.position - other
+            distance = pos.length()
+            if distance == 0:
+                return 0
+            return (pos.x * self.velocity.x + pos.z * self.velocity.z) / distance
+        
+        print('Incorrect argument: {}'.format(other))
+        return 0
 
 class Orange(Car):
     def __init__(self):
@@ -98,16 +108,14 @@ class Blue(Car):
         self.rotation.values = [r for r in input[0][8:17]]
 
 
-class Ball:
+class Ball(GameObject):
     def __init__(self):
-        self.position = vec3()
-        self.velocity = vec3()
+        super().__init__()
 
     def update(self, input):
         self.position.set(x=input[0][7], y=input[0][6], z=input[0][2])
         self.velocity.set(x=input[0][31], y=input[0][32], z=input[0][33])
         self.ground_direction = math.atan2(self.velocity.x, self.velocity.z)
-
 
     def reachable_from_ground(self):
         # with an velocity of 3.5, the ball will reach max y of 0.94 
@@ -142,7 +150,7 @@ class Ball:
 
 
 
-def BallTracker:
+class BallTracker:
     def __init__(self, ball):
         self.ball = ball
         self.position = ball.position
@@ -150,4 +158,5 @@ def BallTracker:
         self.prev_velocity = self.velocity.clone()
 
     def estimate_ground_friction(self):
-        if self.position.y - BALL_RADIUS > 0.2 or self.velocity
+        # if self.position.y - BALL_RADIUS > 0.2 or self.velocity
+        pass

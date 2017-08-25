@@ -1,7 +1,8 @@
 import time
-from utils import vec3, output
+import traceback
 from dodgetimer import *
 from constants import *
+from utils import vec3, output
 
 class EmergencyStrategy:
     # STRATEGIES THAT ABSOLUTELY NEED TO FINISH BEFORE CHANGING
@@ -11,6 +12,7 @@ class EmergencyStrategy:
         self.agent = agent
         if not isinstance(target, vec3):
             print('{} is not vec3'.format(target))
+            traceback.print_stack()
         self.target = target
         print('{!s} initiated emergency {!s}'.format(agent.player, self))
 
@@ -31,14 +33,14 @@ class EmergencyStrategy:
 
 class KickOff(EmergencyStrategy):
     def __init__(self, agent, target):
-        super().__init__(agent, None)
+        super().__init__(agent, target)
         # KickOff target should be somewhere in front of ball
         self.target = vec3(z=self.agent.player.goal_coords.z * 0.05)
         self.starting_position = self.agent.player.position.clone()
 
     def get_output(self):
-    	angle = self.player.angle_to(self.target)
-    	turn = angle * KICKOFF_YAW_SENSITIVITY
+        angle = self.player.angle_to(self.target)
+        turn = angle * KICKOFF_YAW_SENSITIVITY
         # Boost towards ball (speed-dodge?), dodge into ball
         # Maybe dont dodge if other player is far away?
         # also, dodge ball into goal angle?
@@ -93,8 +95,8 @@ class DodgeTowards(EmergencyStrategy):
         boost = self.agent.player.below_max_speed() and dodge_state < JUMP_DODGING
         jump = self.dodge_timer.jump_button()
         if dodge_state == JUMP_DODGING:
-        	angle = self.player.angle_to(self.target)
-        	turn = angle * YAW_SENSITIVITY
+            angle = self.player.angle_to(self.target)
+            turn = angle * YAW_SENSITIVITY
             pitch = STICK_MIN # Nose down, maximum velocity here we go
         return output(yaw=turn, pitch=pitch, boost=boost, jump=jump)
 

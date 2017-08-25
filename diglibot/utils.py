@@ -12,15 +12,17 @@ class output:
         self.powerslide = powerslide
 
     def normalize_stick(self, value):
-        stick_value = int(STICK_MIDDLE + STICK_MIDDLE * value)
-        return min(max(stick_value, STICK_MIN), STICK_MAX)
+        return self.clamp(STICK_MIDDLE + STICK_MIDDLE * value)
+
+    def clamp(self, value):
+        return min(max(int(value), STICK_MIN), STICK_MAX)
 
     def generate_vector(self):
         return [
             self.normalize_stick(self.yaw),
             self.normalize_stick(self.pitch),
-            int(round(self.speed * STICK_MAX)) if self.speed > 0 else 0,
-            int(round(abs(self.speed) * STICK_MAX)) if self.speed < 0 else 0,
+            self.clamp(self.speed * STICK_MAX) if self.speed > 0 else 0,
+            self.clamp(abs(self.speed) * STICK_MAX) if self.speed < 0 else 0,
             int(self.jump),
             int(self.boost),
             int(self.powerslide)
@@ -34,14 +36,10 @@ class vec3:
         self.z = z
 
     def __sub__(self, other):
-        return vec3(self.x - other.x,
-                    self.y - other.y,
-                    self.z - other.z)
+        return vec3(self.x - other.x, self.y - other.y, self.z - other.z)
 
     def __add__(self, other):
-        return vec3(self.x + other.x,
-                    self.y + other.y,
-                    self.z + other.z)
+        return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def copy(self, other):
         self.x = other.x
@@ -89,17 +87,14 @@ class Rotation:
         # values[7]: 
         # values[8]: cos(pitch&roll)
 
-    @property
     def pitch(self):
         return self.values[6]
 
-    @property
     def forward(self):
         # Returns a world space angle on x,z plane
         return math.atan2(self.values[0], self.values[3])
 
-    @property
     def up(self):
         # Returns normalized vec3 facing up
+        print('Rotation.up not implemented')
         pass
-

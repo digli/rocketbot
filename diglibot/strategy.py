@@ -1,8 +1,8 @@
 import math
 import time
 from constants import *
-from utils import vec3, output
 from emergency import *
+from utils import vec3, output
 
 
 class StrategyManager:
@@ -43,7 +43,6 @@ class StrategyManager:
         return max(self.options, key=lambda a: a.score())
 
 
-
 class Strategy:
     def __init__(self, agent):
         self.agent = agent
@@ -57,7 +56,6 @@ class Strategy:
 
     def on_change(self):
         print('{0.player!s} changed strat to {0!s}'.format(self))
-        print('{!s} has {} boost'.format(self.player, self.player.boost))
         self.initiate_strategy()
 
     # Override following functions
@@ -99,23 +97,6 @@ class GoForBoost(Strategy):
         points -= dist / 150
         points -= self.player.boost / 100
         return points
-
-
-class GoForSave(Strategy):
-
-    def score(self):
-        return 0
-        # todo ...
-        if ball.going_into_goal(self.player.goal_coords.z):
-            return 1
-
-
-class IdleInPlace(Strategy):
-    def get_output(self):
-        return output(speed=0)
-
-    def score(self):
-        return 0
 
 
 class GoForScore(Strategy):
@@ -176,5 +157,22 @@ class Retreat(Strategy):
         # Check if car to ball angle results in own goal
         return 0
 
+
+class GoForSave(Strategy):
+    def score(self):
+        return 0
+        # todo ...
+        if ball.going_into_goal(self.player.goal_coords.z):
+            return 1
+
+
+class IdleInPlace(Strategy):
+    def get_output(self):
+        return output(speed=0)
+
+    def score(self):
+        return 0
+
 class AttemptAerial(Strategy):
     pass
+
