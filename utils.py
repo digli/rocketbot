@@ -41,6 +41,12 @@ class vec3:
     def __add__(self, other):
         return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
 
+    def __gt__(self, other):
+        return self.length_squared() > other.length_squared()
+
+    def __lt__(self, other):
+        return self.length_squared() < other.length_squared()
+
     def copy(self, other):
         self.x = other.x
         self.y = other.y
@@ -76,25 +82,27 @@ class vec3:
 
 class Rotation:
     def __init__(self):
-        self.values = []
-        # values[0]: sin(phi) ( WORLD SPACE )
-        # values[1]: car.up == world.up ? cos(phi) : -cos(phi)
-        # values[2]: cos(roll_x)
-        # values[3]: cos(phi) ( WORLD SPACE )
-        # values[4]: car.up == world.up ? sin(phi) : -sin(phi)
-        # values[5]: cos(roll_z)
-        # values[6]: sin(pitch)
-        # values[7]: 
-        # values[8]: cos(pitch&roll)
+        self.values = [0 for i in range(0, 9)]
 
     def pitch(self):
         return self.values[6]
 
-    def forward(self):
+    def yaw(self):
         # Returns a world space angle on x,z plane
         return math.atan2(self.values[0], self.values[3])
 
+    # Credit to Arator for following functions
+    @property
+    def forward(self):
+        # Normalized vector (roll axis)
+        return vec3(self.values[0], self.values[6], self.values[3])
+
+    @property
+    def right(self):
+        # Normalized vector (pitch axis)
+        return vec3(self.values[1], self.values[7], self.values[4])
+
+    @property
     def up(self):
-        # Returns normalized vec3 facing up
-        print('Rotation.up not implemented')
-        pass
+        # Normalized vector (yaw axis)
+        return vec3(self.values[2], self.values[8], self.values[5])

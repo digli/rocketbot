@@ -15,9 +15,9 @@ class StrategyManager:
             IdleInPlace(agent),
             Retreat(agent)
         ]
-        # Chase ball at game start
         self.strategy = self.options[0]
-        self.emergency_strategy = KickOff(agent, agent.ball.position)
+        self.emergency_strategy = None
+        # self.emergency_strategy = KickOff(agent, agent.ball.position)
 
     def update(self):
         # Highest priority: Emergency Strategy
@@ -73,14 +73,11 @@ class GoForBoost(Strategy):
     def get_output(self):
         if not self.target.is_available():
             self.target = self.boost_tracker.closest_big_boost()
-            # target cannot be None here, boost cant be popped between score()
-            # and this function.
+            if self.target is None:
+                return output(speed=0)
         angle = self.player.angle_to(self.target.position)
-        if (self.player.should_dodge_to(self.target.position) 
-            and abs(angle) < 0.3):
-            dodge_strategy = DodgeTowards(self.agent, self.target.position)
-            self.agent.trigger_emergency(dodge_strategy)
-            return dodge_strategy.get_output()
+        if self.player.should_dodge_to(self.target.position):
+            return self.agent.dodge(self.target.position)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         # boosting while powersliding is redundant
@@ -100,16 +97,16 @@ class GoForBoost(Strategy):
 
 
 class GoForScore(Strategy):
-    # GROUND BALL CHASING ONLY
-    # Jumping and dodging occurs in AttemptAerial
     def get_output(self):
         # TODO: take velocity of ball into accord, calculating point of contact
         # Determine if we should use boost
-        angle = self.player.angle_to(self.ball.position)
+        if (self.player.should_dodge_to(self.ball)):
+            return self.agent.dodge(self.ball)
+        angle = self.player.angle_to(self.ball)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         boost = self.player.below_max_speed() and self.ball.reachable_from_ground()
-        boost = boost and not powerslide
+        boost &= not powerslide
         return output(yaw=turn, boost=boost, powerslide=powerslide)
 
     def score(self):
@@ -122,6 +119,8 @@ class GoForScore(Strategy):
 
 class GoToGoal(Strategy):
     def get_output(self):
+        if self.player.should_dodge_to(self.target.position):
+            return self.agent.dodge(self.target.position)
         angle = self.player.angle_to(self.player.goal_coords)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)

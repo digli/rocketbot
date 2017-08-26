@@ -1,6 +1,7 @@
 import math
 
 YAW_SENSITIVITY = 7
+DODGE_SENSITIVITY = 3
 KICKOFF_YAW_SENSITIVITY = 8
 POWERSLIDE_THRESHOLD = 1.2 # Radians (REMEMBER TO TRY SMALLER VALUES)
 STICK_MAX = 32767
@@ -38,9 +39,14 @@ OCTANE_NET_HEIGHT = 0.3883453
 OCTANE_HITBOX_OFFSET = 0.1387566
 OCTANE_PIVOT_PT_TO_FRONT = 0.7287936
 
+CAR_HEIGHT_THRESHOLD = 0.4
+
 # could possibly be OCTANE_PIVOT_PT_TO_FRONT instead of length but who knows
 ANGLE_TO_BUMPER = math.atan(OCTANE_LENGTH / OCTANE_WIDTH)
 OCTANE_MID_TO_CORNER = math.hypot(OCTANE_LENGTH, OCTANE_WIDTH)
+
+ANGLE_TO_BUMPER = math.atan(OCTANE_PIVOT_PT_TO_FRONT / OCTANE_WIDTH / 2)
+OCTANE_MID_TO_CORNER = math.hypot(OCTANE_PIVOT_PT_TO_FRONT, OCTANE_WIDTH / 2)
 
 GRAVITY_CONSTANT = 6.5 # m/s^2
 CAR_MAX_SPEED = 46 # m/s
@@ -48,3 +54,11 @@ CAR_SUPERSONIC_THRESHOLD = CAR_MAX_SPEED - 1.5 # change if needed
 
 DODGE_TIME_LIMIT = 2 # (seconds) according to random guide on steam
 MIN_DODGE_SPEED = 20 # try this out too, could be 20 or smth
+
+################# DodgeTimer #################
+JUMP_STARTING = 0
+JUMP_BUFFERING = 1
+JUMP_DODGING = 2
+JUMP_FINISHED = 3
+JUMP_TO_DODGE_DT = 0.05 # (seconds) __test this__
+UPDATE_BUFFER = 1 / 60 # one frame should be enough right?

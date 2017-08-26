@@ -1,19 +1,15 @@
 import time
-import traceback
 from dodgetimer import *
 from constants import *
 from utils import vec3, output
 
+
 class EmergencyStrategy:
     # STRATEGIES THAT ABSOLUTELY NEED TO FINISH BEFORE CHANGING
     # No score() function, can only be triggered by other strategies
-    def __init__(self, agent, target):
+    def __init__(self, agent):
         # :param target: vec3
         self.agent = agent
-        if not isinstance(target, vec3):
-            print('{} is not vec3'.format(target))
-            traceback.print_stack()
-        self.target = target
         print('{!s} initiated emergency {!s}'.format(agent.player, self))
 
     def get_output(self):
@@ -32,8 +28,8 @@ class EmergencyStrategy:
 
 
 class KickOff(EmergencyStrategy):
-    def __init__(self, agent, target):
-        super().__init__(agent, target)
+    def __init__(self, agent):
+        super().__init__(agent)
         # KickOff target should be somewhere in front of ball
         self.target = vec3(z=self.agent.player.goal_coords.z * 0.01)
         self.starting_position = self.agent.player.position.clone()
@@ -62,8 +58,8 @@ class NoFlip(EmergencyStrategy):
     # Also known as Air Dash
     # Ok so this works well IF player has boost
     # and not so well for kickoffs
-    def __init__(self, agent, target):
-        super().__init__(agent, target)
+    def __init__(self, agent):
+        super().__init__(agent)
         self.dodge_timer = DodgeTimer(d0=0.37)
 
     def get_output(self):
@@ -76,16 +72,13 @@ class NoFlip(EmergencyStrategy):
         return output(pitch=pitch, boost=boost, jump=jump)
 
     def is_finished(self):
-        # arbitrary again
+        # arbitrary guesses
         return time.time() - self.dodge_timer.start > 1.7 and self.agent.player.on_ground()
-
-    def suggest_next_strategy(self):
-        return DodgeTowards(self.agent, self.target)
-        return Idle(self.agent, self.target)
 
 class DodgeTowards(EmergencyStrategy):
     def __init__(self, agent, target):
-        super().__init__(agent, target)
+        super().__init__(agent)
+        self.target = target
         self.dodge_timer = DodgeTimer()
 
     def get_output(self):
@@ -94,14 +87,21 @@ class DodgeTowards(EmergencyStrategy):
         dodge_state = self.dodge_timer.update_state()
         boost = self.agent.player.below_max_speed() and dodge_state < JUMP_DODGING
         jump = self.dodge_timer.jump_button()
+        if dodge_state == JUMP_BUFFERING:
+            self.pre_dodge_speed = self.agent.player.speed
+        if dodge_state == JUMP_FINISHED:
+            if not hasattr(self, 'popped'):
+                print(self.agent.player.speed - self.pre_dodge_speed)
+                self.popped = True
         if dodge_state == JUMP_DODGING:
             angle = self.agent.player.angle_to(self.target)
-            turn = angle * YAW_SENSITIVITY
+            turn = angle * DODGE_SENSITIVITY
             pitch = -1 # Nose down, maximum velocity here we go
         return output(yaw=turn, pitch=pitch, boost=boost, jump=jump)
 
     def is_finished(self):
-        return self.dodge_timer.is_finished() and self.agent.player.on_ground()
+        time_elapsed = time.time() - self.dodge_timer.start
+        return time_elapsed > 2 or not self.agent.player.is_airbound()
 
     def suggest_next_strategy(self):
         return None
@@ -112,18 +112,15 @@ class DodgeTowards(EmergencyStrategy):
 
 
 class Idle(EmergencyStrategy):
-    def __init__(self, agent, target):
-        super().__init__(agent, target)
+    def __init__(self, agent):
+        super().__init__(agent)
         self.timestamp = time.time()
 
     def get_output(self):
         return output(speed=0)
 
     def is_finished(self):
-        return time.time() - self.timestamp > 2
-
-    def suggest_next_strategy(self):
-        return NoFlip(self.agent, self.target)
+        return True
 
 class SafeLanding(EmergencyStrategy):
     pass
