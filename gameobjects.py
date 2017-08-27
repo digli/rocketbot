@@ -36,6 +36,7 @@ class Car(KineticObject):
     def should_dodge_to(self, target):
         """:param target: Ball or vec3"""
         if not self.on_ground() or self.on_wall() and self.position.y > 10:
+            # TODO: if on_wall, we should dodge if car.forward points up
             return False
         if isinstance(target, Ball):
             return self.should_dodge_to_ball(target)
@@ -44,19 +45,26 @@ class Car(KineticObject):
         raise TypeError('{} is neither Ball nor vec3'.format(target))
 
     def should_dodge_to_ball(self, ball):
-        # TODO: use dodge_mock
-        speed_ok = MIN_DODGE_SPEED < self.speed < CAR_MAX_SPEED - 10
+        speed_ok = MIN_DODGE_SPEED < self.speed < CAR_MAX_SPEED - 6
         angle_to_target = self.angle_to(ball)
-        relative_velocity = self.relative_velocity_to(ball)
-        if relative_velocity == 0 or abs(angle_to_target) > 0.1:
+        if abs(angle_to_target) > 0.1:
             return False
-        distance_to_ball = (self.position - ball.position).length()
-        # TODO: factor in ball's velocity
-        time_to_ball_impact = (distance_to_ball - BALL_RADIUS) / relative_velocity
-        within_impact_range = relative_velocity > 0 and time_to_ball_impact < 1
-        target_too_close = relative_velocity > 0 and time_to_ball_impact < 5
-        target_too_close &= not ball.reachable_from_ground()
-        return within_impact_range or (speed_ok and not target_too_close)
+        within_impact_range = 0.1 < self.time_to_intersect(ball) < 0.4
+        target_too_close = 0.5 < self.dodge_mock().time_to_intersect(ball) < 1.5
+        if within_impact_range and ball.reachable_from_ground():
+            return True
+        return not target_too_close and speed_ok
+
+        # relative_velocity = self.relative_velocity_to(ball)
+        # if relative_velocity == 0 or abs(angle_to_target) > 0.1:
+        #     return False
+        # distance_to_ball = (self.position - ball.position).length()
+        # # TODO: factor in ball's velocity
+        # time_to_ball_impact = (distance_to_ball - BALL_RADIUS) / relative_velocity
+        # within_impact_range = relative_velocity > 0 and time_to_ball_impact < 1
+        # target_too_close = relative_velocity > 0 and time_to_ball_impact < 5
+        # target_too_close &= not ball.reachable_from_ground()
+        # return within_impact_range or (speed_ok and not target_too_close)
 
     def should_dodge_to_position(self, target):
         speed_ok = MIN_DODGE_SPEED < self.speed < CAR_MAX_SPEED - 10
@@ -126,24 +134,27 @@ class Car(KineticObject):
             return self.speed * math.cos(self.angle_to(other))
         raise TypeError('"other" must be KineticObject or vec3')
 
+    def time_to_point(self, point):
+        relative_velocity = self.speed * math.cos(self.angle_to(other))
+        if relative_velocity == 0:
+            return math.inf
+        return (self.position - other).length() / relative_velocity 
+
     def time_to_intersect(self, other):
-        if other.velocity.length_squared() == 0:
-            # treat other as static point
-            rel_velocity = self.speed * math.cos(self.angle_to(other))
-            if rel_velocity == 0:
-                return 999999999
-            return (self.position - other.position).length() / rel_velocity 
+        if isinstance(other, vec3):
+            return time_to_point(other)
         # https://www.gamedev.net/forums/topic/647810-intersection-point-of-two-vectors/
         c = self.position - other.position
         d1 = self.velocity
         d2 = other.velocity
-        # so what, if ball has v=0, it never intersects?
         if d1.z * d2.x - d1.x * d2.z == 0:
-            return 999999999 # 'infinity'
+            return math.inf
         return (c.x * d2.z - c.z * d2.x) / (d1.z * d2.x - d1.x * d2.z)
 
     def intersection_point(self, other):
         t = self.time_to_intersect(other)
+        if (t == math.inf):
+            return other.position
         x = other.position.x + other.velocity.x * t
         z = other.position.z + other.velocity.z * t
         return vec3(x, 0, z)

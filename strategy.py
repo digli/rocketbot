@@ -106,7 +106,8 @@ class GoForScore(Strategy):
         angle = self.player.angle_to(intersect)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
-        boost = self.player.below_max_speed() and self.ball.reachable_from_ground()
+        boost = (self.player.position - intersect).length_squared() > 50**2
+        boost &= self.player.below_max_speed() and self.ball.reachable_from_ground()
         boost &= not powerslide
         return output(yaw=turn, boost=boost, powerslide=powerslide)
 
