@@ -57,6 +57,7 @@ CAR_SUPERSONIC_THRESHOLD = CAR_MAX_SPEED - 2 # change if needed
 
 DODGE_TIME_LIMIT = 2 # (seconds) according to random guide on steam
 MIN_DODGE_SPEED = 20 # try this out too, could be 20 or smth
+MAX_DODGE_SPEED = CAR_MAX_SPEED - 6
 
 ################# DodgeTimer #################
 JUMP_STARTING = 0
@@ -64,5 +65,6 @@ JUMP_BUFFERING = 1
 JUMP_DODGING = 2
 JUMP_FINISHED = 3
 JUMP_TO_DODGE_DT = 0.06 # (seconds) __test this__
+FULL_DODGE_DURATION = 1.6
 UPDATE_BUFFER = 1 / 60
 DODGE_SPEED_INCREMENT = 10

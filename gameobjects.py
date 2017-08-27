@@ -24,6 +24,9 @@ class Car(KineticObject):
     def should_powerslide(self, angle):
         return self.on_ground() and abs(angle) > POWERSLIDE_THRESHOLD
 
+    def should_boost(self):
+        return self.below_max_speed() and not self.is_airbound()
+
     def dodge_mock(self):
         mock = Car()
         mock.position = self.position.clone()
@@ -45,35 +48,22 @@ class Car(KineticObject):
         raise TypeError('{} is neither Ball nor vec3'.format(target))
 
     def should_dodge_to_ball(self, ball):
-        speed_ok = MIN_DODGE_SPEED < self.speed < CAR_MAX_SPEED - 6
+        speed_ok = MIN_DODGE_SPEED < self.speed < MAX_DODGE_SPEED
         angle_to_target = self.angle_to(ball)
         if abs(angle_to_target) > 0.1:
             return False
-        within_impact_range = 0.1 < self.time_to_intersect(ball) < 0.4
-        target_too_close = 0.5 < self.dodge_mock().time_to_intersect(ball) < 1.5
+        within_impact_range = 0.02 < self.time_to_intersect(ball) < 0.08
+        target_too_close = 0.5 < self.dodge_mock().time_to_intersect(ball) < FULL_DODGE_DURATION
         if within_impact_range and ball.reachable_from_ground():
             return True
         return not target_too_close and speed_ok
 
-        # relative_velocity = self.relative_velocity_to(ball)
-        # if relative_velocity == 0 or abs(angle_to_target) > 0.1:
-        #     return False
-        # distance_to_ball = (self.position - ball.position).length()
-        # # TODO: factor in ball's velocity
-        # time_to_ball_impact = (distance_to_ball - BALL_RADIUS) / relative_velocity
-        # within_impact_range = relative_velocity > 0 and time_to_ball_impact < 1
-        # target_too_close = relative_velocity > 0 and time_to_ball_impact < 5
-        # target_too_close &= not ball.reachable_from_ground()
-        # return within_impact_range or (speed_ok and not target_too_close)
-
     def should_dodge_to_position(self, target):
-        speed_ok = MIN_DODGE_SPEED < self.speed < CAR_MAX_SPEED - 10
-        relative_velocity = self.relative_velocity_to(target)
         angle_to_target = self.angle_to(target)
-        if relative_velocity == 0 or abs(angle_to_target) > 0.1:
+        if abs(angle_to_target) > 0.1:
             return False
-        distance_to_target = (self.position - target).length()
-        target_too_close = distance_to_target / relative_velocity < 4
+        speed_ok = MIN_DODGE_SPEED < self.speed < MAX_DODGE_SPEED
+        target_too_close = self.dodge_mock().time_to_intersect(target) < FULL_DODGE_DURATION
         return speed_ok and not target_too_close
 
     def angle_to(self, target):
@@ -119,42 +109,28 @@ class Car(KineticObject):
     def on_ground(self):
         return self.position.y < CAR_HEIGHT_THRESHOLD
 
-    def relative_velocity_to(self, other):
-        # Scrap this? (use time_to_intersect instead)
-        """:param other: KineticObject OR vec3"""
-        if isinstance(other, KineticObject):
-            return (other.velocity - self.velocity) * vec3(1, 1, 1)
-            pos = other.position - self.position 
-            vel = other.velocity - self.velocity
-            distance = pos.length()
-            if distance == 0:
-                return 0
-            return pos * vel / distance
-        if isinstance(other, vec3):
-            return self.speed * math.cos(self.angle_to(other))
-        raise TypeError('"other" must be KineticObject or vec3')
-
-    def time_to_point(self, point):
-        relative_velocity = self.speed * math.cos(self.angle_to(other))
-        if relative_velocity == 0:
-            return math.inf
-        return (self.position - other).length() / relative_velocity 
-
     def time_to_intersect(self, other):
         if isinstance(other, vec3):
-            return time_to_point(other)
+            relative_velocity = self.speed * math.cos(self.angle_to(other))
+            if relative_velocity == 0:
+                return math.inf
+            return (self.position - other).length() / relative_velocity
+        if not isinstance(other, Ball):
+            raise TypeError('param other should be either vec3 or Ball')
         # https://www.gamedev.net/forums/topic/647810-intersection-point-of-two-vectors/
-        c = self.position - other.position
+        c = self.position - other.account_for_radius(self.angle_to(other))
         d1 = self.velocity
         d2 = other.velocity
         if d1.z * d2.x - d1.x * d2.z == 0:
             return math.inf
-        return (c.x * d2.z - c.z * d2.x) / (d1.z * d2.x - d1.x * d2.z)
+        # abs to stop bot from trying to travel back in time
+        return abs((c.x * d2.z - c.z * d2.x) / (d1.z * d2.x - d1.x * d2.z))
 
     def intersection_point(self, other):
         t = self.time_to_intersect(other)
         if (t == math.inf):
             return other.position
+        t = abs(t)
         x = other.position.x + other.velocity.x * t
         z = other.position.z + other.velocity.z * t
         return vec3(x, 0, z)
@@ -229,3 +205,9 @@ class Ball(KineticObject):
         distance_to_wall = goal_z - self.position.z
         collision_x = self.position.x + math.tan(self.ground_direction) * distance_to_wall
         return abs(collision_x) < GOAL_HALF_WIDTH
+
+    def account_for_radius(self, angle):
+        position = self.position.clone()
+        position.x += math.cos(angle) * BALL_RADIUS
+        position.z += math.sin(angle) * BALL_RADIUS
+        return position

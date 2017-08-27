@@ -31,7 +31,7 @@ class KickOff(EmergencyStrategy):
     def __init__(self, agent):
         super().__init__(agent)
         # KickOff target should be somewhere in front of ball
-        self.target = vec3(z=self.agent.player.goal_coords.z * 0.01)
+        self.target = vec3(z=math.copysign(BALL_RADIUS, self.agent.player.goal_coords.z))
         self.starting_position = self.agent.player.position.clone()
 
     def get_output(self):
@@ -95,7 +95,9 @@ class DodgeTowards(EmergencyStrategy):
 
     def is_finished(self):
         time_elapsed = time.time() - self.dodge_timer.start
-        return time_elapsed > 1 and not self.agent.player.is_airbound()
+        if time_elapsed > FULL_DODGE_DURATION:
+            return True
+        return time_elapsed > 0.4 and not self.agent.player.is_airbound()
 
     def suggest_next_strategy(self):
         return None

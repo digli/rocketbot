@@ -81,7 +81,7 @@ class GoForBoost(Strategy):
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         # boosting while powersliding is redundant
-        boost = not powerslide and self.player.below_max_speed()
+        boost = not powerslide and self.player.should_boost()
         return output(yaw=turn, speed=1, boost=boost, powerslide=powerslide)
 
     def score(self):
@@ -107,8 +107,8 @@ class GoForScore(Strategy):
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         boost = (self.player.position - intersect).length_squared() > 50**2
-        boost &= self.player.below_max_speed() and self.ball.reachable_from_ground()
-        boost &= not powerslide
+        boost |= self.ball.reachable_from_ground()
+        boost &= self.player.should_boost() and not powerslide
         return output(yaw=turn, boost=boost, powerslide=powerslide)
 
     def score(self):
