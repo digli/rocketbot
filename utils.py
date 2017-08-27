@@ -51,7 +51,6 @@ class vec3:
     def __lt__(self, other):
         return self.length_squared() < other.length_squared()
 
-
     def copy(self, other):
         self.x = other.x
         self.y = other.y

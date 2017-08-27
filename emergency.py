@@ -87,6 +87,12 @@ class DodgeTowards(EmergencyStrategy):
         dodge_state = self.dodge_timer.update_state()
         boost = self.agent.player.below_max_speed() and dodge_state < JUMP_DODGING
         jump = self.dodge_timer.jump_button()
+        if dodge_state == JUMP_BUFFERING:
+            self.pre_dodge_speed = self.agent.player.speed
+        if dodge_state == JUMP_FINISHED:
+            if not hasattr(self, 'popped'):
+                print(self.agent.player.speed - self.pre_dodge_speed)
+                self.popped = True
         if dodge_state == JUMP_DODGING:
             angle = self.agent.player.angle_to(self.target)
             turn = angle * DODGE_SENSITIVITY
