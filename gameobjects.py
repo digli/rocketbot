@@ -25,13 +25,13 @@ class Car(KineticObject):
         return self.on_ground() and abs(angle) > POWERSLIDE_THRESHOLD
 
     def dodge_mock(self):
-        v = self.velocity.clone()
-        p = self.position.clone()
-        angle = self.forward
-        speed_increment = max(DODGE_SPEED_INCREMENT, CAR_MAX_SPEED - self.speed)
-        v.x += math.sin(self.forward) * speed_increment
-        v.z += math.cos(self.forward) * speed_increment
-        return KineticObject(p, v)
+        mock = Car()
+        mock.position = self.position.clone()
+        mock.velocity = self.velocity.clone()
+        speed_increment = min(DODGE_SPEED_INCREMENT, CAR_MAX_SPEED - self.speed)
+        mock.velocity.x += math.sin(self.forward) * speed_increment
+        mock.velocity.z += math.cos(self.forward) * speed_increment
+        return mock
 
     def should_dodge_to(self, target):
         """:param target: Ball or vec3"""

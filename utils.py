@@ -120,9 +120,9 @@ class world:
 
 
 class KineticObject:
-    def __init__(self, position=vec3(), velocity=vec3()):
-        self.position = position
-        self.velocity = velocity
+    def __init__(self):
+        self.position = vec3()
+        self.velocity = vec3()
 
     def __str__(self):
         return self.__class__.__name__
