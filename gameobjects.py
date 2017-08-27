@@ -1,15 +1,6 @@
 import math
 from constants import *
-from utils import vec3, Rotation
-
-
-class KineticObject:
-    def __init__(self):
-        self.position = vec3()
-        self.velocity = vec3()
-
-    def __str__(self):
-        return self.__class__.__name__
+from utils import vec3, world, KineticObject, Rotation
 
 
 class Car(KineticObject):
@@ -24,7 +15,7 @@ class Car(KineticObject):
     def update(self, input):
         self.read_input(input)
         self.speed = self.velocity.length()
-        self.forward = self.rotation.forward()
+        self.forward = self.rotation.yaw()
         self.pitch = self.rotation.pitch()
 
     def below_max_speed(self):
@@ -34,22 +25,56 @@ class Car(KineticObject):
         return self.on_ground() and abs(angle) > POWERSLIDE_THRESHOLD
 
     def should_dodge_to(self, target):
-        going_too_fast = self.speed > CAR_MAX_SPEED - 5
-        # TODO: Factor in velocity somehow
-        target_too_close = (self.position - target).length_squared() < 30**2
-        going_too_slow = self.speed < MIN_DODGE_SPEED
-        if going_too_fast or target_too_close or going_too_slow:
+        """:param target: Ball or vec3"""
+        if not self.on_ground():
             return False
-        return True
+        if isinstance(target, Ball):
+            return self.should_dodge_to_ball(target)
+        if isinstance(target, vec3):
+            return self.should_dodge_to_position(target)
+        raise TypeError('{} is neither Ball nor vec3'.format(target))
 
-    def angle_to(self, target_position):
-        direction = target_position - self.position
+    def should_dodge_to_ball(self, ball):
+        speed_ok = MIN_DODGE_SPEED < self.speed < CAR_MAX_SPEED - 10
+        angle_to_target = self.angle_to(ball)
+        relative_velocity = self.relative_velocity_to(ball)
+        if relative_velocity == 0 or abs(angle_to_target) > 0.1:
+            return False
+        distance_to_ball = (self.position - ball.position).length()
+        # TODO: factor in ball's velocity
+        time_to_ball_impact = (distance_to_ball - BALL_RADIUS) / relative_velocity
+        within_impact_range = relative_velocity > 0 and time_to_ball_impact < 1
+        target_too_close = relative_velocity > 0 and time_to_ball_impact < 5
+        target_too_close &= not ball.reachable_from_ground()
+        return within_impact_range or (speed_ok and not target_too_close)
+
+    def should_dodge_to_position(self, target):
+        speed_ok = MIN_DODGE_SPEED < self.speed < CAR_MAX_SPEED - 10
+        relative_velocity = self.relative_velocity_to(target)
+        angle_to_target = self.angle_to(target)
+        if relative_velocity == 0 or abs(angle_to_target) > 0.1:
+            return False
+        distance_to_target = (self.position - target).length()
+        target_too_close = distance_to_target / relative_velocity < 4
+        return speed_ok and not target_too_close
+
+    def angle_to(self, target):
+        """:param target: vec3 or KineticObject"""
+        # TODO: vec3 angles? using rotation.forward or whatever
+        if isinstance(target, KineticObject):
+            target = target.position
+        direction = target - self.position
+        if self.on_wall():
+            # Check if ball is close to wall
+            # get proper angle
+            pass
         angle_to_target = math.atan2(direction.x, direction.z)
         diff = self.forward - angle_to_target
         return math.atan2(math.sin(diff), math.cos(diff))
 
     def closest_bumper(self, target):
-        diff = angle.car_to_target(self, target)
+        """:param target: vec3"""
+        diff = self.anle_to(self, target)
         return self.left_bumper() if diff > 0 else self.right_bumper()
 
     def left_bumper(self):
@@ -64,33 +89,37 @@ class Car(KineticObject):
         z = math.cos(angle) * OCTANE_MID_TO_CORNER
         return vec3(x, OCTANE_HEIGHT, z)
 
+    def is_airbound(self):
+        return not self.on_wall() and not self.on_ground()
+
+    def on_wall(self):
+        on_x_wall = abs(self.position.x) > FIELD_HALF_X - CAR_HEIGHT_THRESHOLD
+        on_z_wall = abs(self.position.z) > FIELD_HALF_Z - CAR_HEIGHT_THRESHOLD
+        car_normal = self.rotation.up.y
+        return (on_x_wall or on_z_wall) and abs(car_normal) < 0.1 
+
     def on_ground(self):
-        return self.position.y < 0.5 # arbitrary testing number
+        return self.position.y < CAR_HEIGHT_THRESHOLD
 
     def relative_velocity_to(self, other):
+        """:param other: KineticObject OR vec3"""
         if isinstance(other, KineticObject):
-            pos = self.position - other.position
-            vel = self.velocity - other.velocity
+            return (other.velocity - self.velocity) * vec3(1, 1, 1)
+            pos = other.position - self.position 
+            vel = other.velocity - self.velocity
             distance = pos.length()
             if distance == 0:
                 return 0
-            return (pos.x * vel.x + pos.z * vel.z) / distance
-
+            return pos * vel / distance
         if isinstance(other, vec3):
-            pos = self.position - other
-            distance = pos.length()
-            if distance == 0:
-                return 0
-            return (pos.x * self.velocity.x + pos.z * self.velocity.z) / distance
-        
-        print('Incorrect argument: {}'.format(other))
-        return 0
+            return self.speed * math.cos(self.angle_to(other))
+        raise TypeError('"other" must be KineticObject or vec3')
 
 
 class Orange(Car):
     def __init__(self):
         super().__init__()
-        self.goal_coords = vec3(z=102.4)
+        self.goal_coords = vec3(z=FIELD_HALF_Z)
 
     def read_input(self, input):
         self.boost = input[0][37]
@@ -102,7 +131,7 @@ class Orange(Car):
 class Blue(Car):
     def __init__(self):
         super().__init__()
-        self.goal_coords = vec3(z=-102.4)
+        self.goal_coords = vec3(z=-FIELD_HALF_Z)
 
     def read_input(self, input):
         self.boost = input[0][0]
@@ -114,11 +143,14 @@ class Blue(Car):
 class Ball(KineticObject):
     def __init__(self):
         super().__init__()
+        self.next_bounce = 0
 
     def update(self, input):
         self.position.set(x=input[0][7], y=input[0][6], z=input[0][2])
         self.velocity.set(x=input[0][31], y=input[0][32], z=input[0][33])
         self.ground_direction = math.atan2(self.velocity.x, self.velocity.z)
+        self.next_bounce = 0 if self.reachable_from_ground() else self.time_to_ground_hit()
+        self.nbp = self.next_bounce_position()
 
     def reachable_from_ground(self):
         # with an velocity of 3.5, the ball will reach max y of 0.94 
@@ -130,8 +162,12 @@ class Ball(KineticObject):
 
     def time_to_ground_hit(self):
         # good old PQ formula
+        # need rework, doesnt take ball radius into account
         p = -2 * self.velocity.y / GRAVITY_CONSTANT
         q = -2 * self.position.y / GRAVITY_CONSTANT
+        if (p / 2.0)**2 < q:
+            # prevent negative sqrt
+            return 0
         return -1 * p / 2.0 + math.sqrt((p / 2.0)**2 - q)
 
     def next_bounce_position(self):
@@ -141,7 +177,7 @@ class Ball(KineticObject):
         dt = self.time_to_ground_hit()
         x = self.position.x + self.velocity.x * dt
         z = self.position.z + self.velocity.z * dt
-        return vec3(x=x, z=z)
+        return vec3(x, 0, z)
 
     def going_into_goal(self, goal_z):
         if goal_z * math.cos(self.ground_direction) < 0:

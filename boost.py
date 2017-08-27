@@ -6,9 +6,6 @@ class Boost:
     def __init__(self, x, z):
         self.position = vec3(x=x, z=z)
         self.taken_timestamp = 0
-        # dummy values, override!
-        self.boost_respawn_time = 0
-        self.boost_radius_squared = 0
 
     def __str__(self):
         return '{0}({1.x}, {1.z})'.format(self.__class__.__name__, self.position)

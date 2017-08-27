@@ -41,6 +41,17 @@ class vec3:
     def __add__(self, other):
         return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
 
+    def __mul__(self, other):
+        # Dot product
+        return self.x * other.x + self.y * other.y + self.z * other.z
+
+    def __gt__(self, other):
+        return self.length_squared() > other.length_squared()
+
+    def __lt__(self, other):
+        return self.length_squared() < other.length_squared()
+
+
     def copy(self, other):
         self.x = other.x
         self.y = other.y
@@ -76,25 +87,58 @@ class vec3:
 
 class Rotation:
     def __init__(self):
-        self.values = []
-        # values[0]: sin(phi) ( WORLD SPACE )
-        # values[1]: car.up == world.up ? cos(phi) : -cos(phi)
-        # values[2]: cos(roll_x)
-        # values[3]: cos(phi) ( WORLD SPACE )
-        # values[4]: car.up == world.up ? sin(phi) : -sin(phi)
-        # values[5]: cos(roll_z)
-        # values[6]: sin(pitch)
-        # values[7]: 
-        # values[8]: cos(pitch&roll)
+        self.values = [0 for i in range(0, 9)]
 
     def pitch(self):
         return self.values[6]
 
-    def forward(self):
+    def yaw(self):
         # Returns a world space angle on x,z plane
         return math.atan2(self.values[0], self.values[3])
 
+    # Credit to Arator for following functions
+    @property
+    def forward(self):
+        # Normalized vector (roll axis)
+        return vec3(self.values[0], self.values[6], self.values[3])
+
+    @property
+    def right(self):
+        # Normalized vector (pitch axis)
+        return vec3(self.values[1], self.values[7], self.values[4])
+
+    @property
     def up(self):
-        # Returns normalized vec3 facing up
-        print('Rotation.up not implemented')
-        pass
+        # Normalized vector (yaw axis)
+        return vec3(self.values[2], self.values[8], self.values[5])
+
+
+class world:
+    # z and x could be mixed up, idk yet
+    forward = vec3(x=1)
+    up = vec3(y=1)
+    right = vec3(z=1)
+
+
+class KineticObject:
+    def __init__(self):
+        self.position = vec3()
+        self.velocity = vec3()
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def time_to_intersect(self, other):
+        # https://www.gamedev.net/forums/topic/647810-intersection-point-of-two-vectors/
+        c = self.position - other.position
+        d1 = self.velocity
+        d2 = other.velocity
+        if d1.z * d2.x - d1.x * d2.z == 0:
+            return 999999999 # 'infinity'
+        return (c.x * d2.z - c.z * d2.x) / (d1.z * d2.x - d1.x * d2.z)
+
+    def intersection_point(self, other):
+        t = self.time_to_intersect(other)
+        x = self.position.x + self.velocity.x * t
+        z = self.position.z + self.velocity.z * t
+        return vec3(x, 0, z)
