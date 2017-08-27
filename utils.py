@@ -120,33 +120,9 @@ class world:
 
 
 class KineticObject:
-    def __init__(self):
-        self.position = vec3()
-        self.velocity = vec3()
+    def __init__(self, position=vec3(), velocity=vec3()):
+        self.position = position
+        self.velocity = velocity
 
     def __str__(self):
         return self.__class__.__name__
-
-    def time_to_intersect(self, other):
-        # TODO: move this to Car
-        # will raise exceptions if called on ball, self.speed and self.angle_to is used 
-        # https://www.gamedev.net/forums/topic/647810-intersection-point-of-two-vectors/
-        if other.velocity.length_squared() == 0:
-            # treat other as static point
-            rel_velocity = self.speed * math.cos(self.angle_to(other))
-            if rel_velocity == 0:
-                return 999999999
-            return (self.position - other.position).length() / rel_velocity 
-        c = self.position - other.position
-        d1 = self.velocity
-        d2 = other.velocity
-        # so what, if ball has v=0, it never intersects?
-        if d1.z * d2.x - d1.x * d2.z == 0:
-            return 999999999 # 'infinity'
-        return (c.x * d2.z - c.z * d2.x) / (d1.z * d2.x - d1.x * d2.z)
-
-    def intersection_point(self, other):
-        t = self.time_to_intersect(other)
-        x = other.position.x + other.velocity.x * t
-        z = other.position.z + other.velocity.z * t
-        return vec3(x, 0, z)

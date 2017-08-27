@@ -65,3 +65,4 @@ JUMP_DODGING = 2
 JUMP_FINISHED = 3
 JUMP_TO_DODGE_DT = 0.06 # (seconds) __test this__
 UPDATE_BUFFER = 1 / 60 # one frame should be enough right?
+DODGE_SPEED_INCREMENT = 10
