@@ -102,7 +102,8 @@ class GoForScore(Strategy):
         # Determine if we should use boost
         if (self.player.should_dodge_to(self.ball)):
             return self.agent.dodge(self.ball)
-        angle = self.player.angle_to(self.ball)
+        intersect = self.player.intersection_point(self.ball)
+        angle = self.player.angle_to(intersect)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         boost = self.player.below_max_speed() and self.ball.reachable_from_ground()

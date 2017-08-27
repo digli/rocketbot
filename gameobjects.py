@@ -11,16 +11,12 @@ class Car(KineticObject):
         self.forward = 0
         self.pitch = 0
         self.rotation = Rotation()
-        self.max_speed = 0
 
     def update(self, input):
         self.read_input(input)
         self.speed = self.velocity.length()
         self.forward = self.rotation.yaw()
         self.pitch = self.rotation.pitch()
-        if self.speed > self.max_speed:
-            # print('{} max speed: {}'.format(self, self.speed))
-            self.max_speed = self.speed
 
     def below_max_speed(self):
         return self.speed < CAR_SUPERSONIC_THRESHOLD
