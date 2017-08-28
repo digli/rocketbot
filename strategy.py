@@ -7,6 +7,7 @@ from utils import vec3, output
 
 class StrategyManager:
     def __init__(self, agent):
+        self.agent = agent
         self.options = [
             GoForScore(agent),
             GoForSave(agent),
@@ -14,12 +15,12 @@ class StrategyManager:
             GoToGoal(agent),
             IdleInPlace(agent),
             RunParallelWithBall(agent),
-            LandSafely(agent),
+            # LandSafely(agent),
             Retreat(agent)
         ]
         self.strategy = self.options[0]
-        # self.emergency_strategy = None
-        self.emergency_strategy = KickOff(agent)
+        self.emergency_strategy = None
+        # self.emergency_strategy = emergency.KickOff(agent)
 
     def update(self):
         # Highest priority: Emergency Strategy
@@ -29,7 +30,7 @@ class StrategyManager:
             optimal_strategy = self.find_optimal_strategy()
             if optimal_strategy != self.strategy:
                 self.strategy = optimal_strategy
-                print('{} changed strat to {}'.format(self.agent.player, ))
+                print('{}\tchanged strat to {}'.format(self.agent.player, self.strategy))
 
     def check_emergency_strategy(self):
         if self.emergency_strategy is not None and self.emergency_strategy.is_finished():
@@ -100,7 +101,7 @@ class GoForScore(Strategy):
             intersect = self.ball.next_bounce_position()
             time_to_intersect = self.ball.next_bounce
             distance = (self.player.position - intersect).length()
-            if self.player.speed * distance > time_to_intersect:
+            if self.player.speed / distance > time_to_intersect:
                 speed = 0
                 # somehow. maybe return output here?
                 # or should this be refactored into another strategy
@@ -121,10 +122,12 @@ class GoForScore(Strategy):
         return output(yaw=turn, speed=speed, boost=boost, powerslide=powerslide)
 
     def score(self):
+        if self.ball.going_into_goal(self.player.goal_coords.z):
+            return 0
         # needs a lot of work
         points = 1 + self.player.boost / 100 + self.player.speed / 100
         distance_to_ball = (self.player.position - self.ball.position).length()
-        points -= distance_to_ball / 150 + self.player.angle_to(self.ball) / math.pi
+        points -= distance_to_ball / 150 + abs(self.player.angle_to(self.ball)) / math.pi
         return points
 
 
@@ -145,7 +148,6 @@ class GoToGoal(Strategy):
 
 class Retreat(Strategy):
     # Should we avoid hitting ball?
-    # Or should that be covered by GoForSave strategy
     def get_output(self):
         self.target = self.player.position.clone()
         # magic number 0.9 to stop car from running up the wall
@@ -179,7 +181,7 @@ class RunParallelWithBall(Strategy):
     def score(self):
         if (self.ball.ground_speed > CAR_MAX_SPEED and
             self.ball.going_into_goal(self.player.goal_coords.z)):
-            return int(self.speed < self.ball.ground_speed) * 2
+            return int(self.player.speed < self.ball.ground_speed)
         return 0 # TODO
 
 
@@ -188,13 +190,12 @@ class GoForSave(Strategy):
         intersect = self.player.intersection_point(self.ball)
         angle = self.player.angle_to(intersect)
         turn = angle * YAW_SENSITIVITY
-        return output(yaw=turn, boost=self.player.should_boost())
+        boost = self.player.should_boost()
+        return output(yaw=turn, boost=boost)
 
     def score(self):
-        if (self.ball.ground_speed < CAR_MAX_SPEED and 
-            self.ball.going_into_goal(self.player.goal_coords.z)):
-            return int(self.speed > self.ball.ground_speed) * 2
-        return 0
+        # Gets fucking stuck here and i dont know why
+        return (self.ball.going_into_goal(self.player.goal_coords.z))
 
 
 class IdleInPlace(Strategy):
@@ -214,7 +215,7 @@ class LandSafely(Strategy):
         return output(yaw=roll, pitch=pitch, powerslide=powerslide)
 
     def score(self):
-        return int(self.player.velocity.y < 0 and self.player.is_airbound())
+        return int(self.player.velocity.y < -1 and self.player.is_airbound())
 
 
 class AttemptAerial(Strategy):

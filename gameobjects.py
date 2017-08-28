@@ -208,12 +208,15 @@ class Ball(KineticObject):
         return vec3(x, 0, z)
 
     def going_into_goal(self, goal_z):
-        if goal_z * math.cos(self.ground_direction) < 0:
+        if goal_z * math.cos(self.ground_direction) < 0 or self.ground_speed == 0:
             # Opposite direction
             return False
         distance_to_wall = goal_z - self.position.z
         collision_x = self.position.x + math.tan(self.ground_direction) * distance_to_wall
-        return abs(collision_x) < GOAL_HALF_WIDTH
+        if abs(collision_x) < GOAL_HALF_WIDTH:
+            print('x: {}, z: {}'.format(collision_x, goal_z))
+            return True
+        return False
 
     def account_for_radius(self, angle):
         position = self.position.clone()

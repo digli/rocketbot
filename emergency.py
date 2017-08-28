@@ -10,14 +10,14 @@ class EmergencyStrategy:
     def __init__(self, agent):
         # :param target: vec3
         self.agent = agent
-        print('{!s} changed strat to {!s}'.format(agent.player, self))
+        print('{}\tchanged strat to {}'.format(agent.player, self))
 
     def get_output(self):
-        print('{!s} missing implementation: get_output()'.format(self))
+        print('{} missing implementation: get_output()'.format(self))
         pass
 
     def is_finished(self):
-        print('{!s} missing implementation: is_finished()'.format(self))
+        print('{} missing implementation: is_finished()'.format(self))
         pass
 
     def suggest_next_strategy(self):
