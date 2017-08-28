@@ -1,7 +1,7 @@
 import math
 import time
+import emergency
 from constants import *
-from emergency import *
 from utils import vec3, output
 
 
@@ -18,19 +18,18 @@ class StrategyManager:
             Retreat(agent)
         ]
         self.strategy = self.options[0]
-        self.emergency_strategy = None
-        # self.emergency_strategy = KickOff(agent, agent.ball.position)
+        # self.emergency_strategy = None
+        self.emergency_strategy = KickOff(agent)
 
     def update(self):
         # Highest priority: Emergency Strategy
         self.check_emergency_strategy()
         if self.emergency_strategy is not None:
-            return None
-        # No emergency present, continue with normal strats
-        optimal_strategy = self.find_optimal_strategy()
-        if optimal_strategy != self.strategy:
-            self.strategy = optimal_strategy
-            self.strategy.on_change()
+            # No emergency present, continue with normal strats
+            optimal_strategy = self.find_optimal_strategy()
+            if optimal_strategy != self.strategy:
+                self.strategy = optimal_strategy
+                print('{} changed strat to {}'.format(self.agent.player, ))
 
     def check_emergency_strategy(self):
         if self.emergency_strategy is not None and self.emergency_strategy.is_finished():
@@ -55,16 +54,6 @@ class Strategy:
 
     def __str__(self):
         return self.__class__.__name__
-
-    def on_change(self):
-        print('{0.player!s} changed strat to {0!s}'.format(self))
-        self.initiate_strategy()
-
-    # Override following functions
-    def initiate_strategy(self):
-        # not being used ...
-        # perhaps use to calculate ball trajectory etc?
-        pass
 
     def get_output(self):
         return output()
@@ -129,7 +118,7 @@ class GoForScore(Strategy):
         boost |= self.ball.reachable_from_ground()
         boost &= self.player.should_boost() and not powerslide
         boost &= speed != 0
-        return output(yaw=turn, boost=boost, powerslide=powerslide)
+        return output(yaw=turn, speed=speed, boost=boost, powerslide=powerslide)
 
     def score(self):
         # needs a lot of work
