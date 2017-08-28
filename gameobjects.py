@@ -18,6 +18,12 @@ class Car(KineticObject):
         self.forward = self.rotation.yaw()
         self.pitch = self.rotation.pitch()
 
+    def turn_radius(self):
+        # HYPOTHETICAL VALUES
+        if self.speed < 29: # max speed without boost
+            return 10
+        return 10 + self.speed / CAR_MAX_SPEED * 3
+
     def below_max_speed(self):
         return self.speed < CAR_SUPERSONIC_THRESHOLD
 
@@ -163,11 +169,14 @@ class Ball(KineticObject):
     def __init__(self):
         super().__init__()
         self.next_bounce = 0
+        self.ground_direction = 0
+        self.ground_speed = 0
 
     def update(self, input):
         self.position.set(x=input[0][7], y=input[0][6], z=input[0][2])
         self.velocity.set(x=input[0][31], y=input[0][32], z=input[0][33])
         self.ground_direction = math.atan2(self.velocity.x, self.velocity.z)
+        self.ground_speed = math.hypot(self.velocity.x, self.velocity.z)
         self.next_bounce = 0 if self.reachable_from_ground() else self.time_to_ground_hit()
         self.nbp = self.next_bounce_position()
 
@@ -181,9 +190,9 @@ class Ball(KineticObject):
 
     def time_to_ground_hit(self):
         # good old PQ formula
-        # need rework, doesnt take ball radius into account
+        # Need to account for 3% speed loss every second
         p = -2 * self.velocity.y / GRAVITY_CONSTANT
-        q = -2 * self.position.y / GRAVITY_CONSTANT
+        q = -2 * self.position.y / GRAVITY_CONSTANT - BALL_RADIUS
         if (p / 2.0)**2 < q:
             # prevent negative sqrt
             return 0
@@ -194,8 +203,8 @@ class Ball(KineticObject):
             # again, arbitrary guess
             return self.position.clone()
         dt = self.time_to_ground_hit()
-        x = self.position.x + self.velocity.x * dt
-        z = self.position.z + self.velocity.z * dt
+        x = self.position.x + self.velocity.x * dt * 0.97**dt # not sure if this is right
+        z = self.position.z + self.velocity.z * dt * 0.97**dt
         return vec3(x, 0, z)
 
     def going_into_goal(self, goal_z):
@@ -211,3 +220,18 @@ class Ball(KineticObject):
         position.x += math.cos(angle) * BALL_RADIUS
         position.z += math.sin(angle) * BALL_RADIUS
         return position
+
+    def predict_direction_after_impact(self, car):
+        impact_angle = car.angle_to(self)
+        vx = self.velocity.x + math.sin(impact_angle) * car.velocity.x * CAR_FORCE
+        vz = self.velocity.z + math.sin(impact_angle) * car.velocity.z * CAR_FORCE
+        return math.atan2(vx, vz)
+
+    def angle_to_goal(self, goal):
+        direction = goal - self.position
+        angle_to_target = math.atan2(direction.x, direction.z)
+        diff = self.ground_direction - angle_to_target
+        return math.atan2(math.sin(diff), math.cos(diff))
+
+    def desired_angle_to_goal(self, goal):
+        return -1 * self.angle_to_goal(goal) / CAR_FORCE

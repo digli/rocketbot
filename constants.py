@@ -54,6 +54,7 @@ GRAVITY_CONSTANT = 13 # m/s^2
 
 CAR_MAX_SPEED = 46 # m/s
 CAR_SUPERSONIC_THRESHOLD = CAR_MAX_SPEED - 2 # change if needed
+CAR_FORCE = 2 # ?
 
 DODGE_TIME_LIMIT = 2 # (seconds) according to random guide on steam
 MIN_DODGE_SPEED = 20 # try this out too, could be 20 or smth

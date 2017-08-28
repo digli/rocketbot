@@ -100,10 +100,16 @@ class GoForScore(Strategy):
     def get_output(self):
         # TODO: take velocity of ball into accord, calculating point of contact
         # Determine if we should use boost
-        if (self.player.should_dodge_to(self.ball)):
+        if (self.player.should_dodge_to(self.ball) and 
+            not self.agent.previous_output.powerslide):
             return self.agent.dodge(self.ball)
         intersect = self.player.intersection_point(self.ball)
-        angle = self.player.angle_to(intersect)
+        # EXPERIMENTAL STUFF
+        desired_impact = vec3()
+        desired_angle = self.ball.desired_angle_to_goal(self.opponent.goal_coords)
+        desired_impact.x = intersect.x - BALL_RADIUS * math.sin(desired_angle)
+        desired_impact.z = intersect.z - BALL_RADIUS * math.cos(desired_angle)
+        angle = self.player.angle_to(desired_impact)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         boost = (self.player.position - intersect).length_squared() > 50**2
@@ -150,8 +156,8 @@ class Retreat(Strategy):
         return 0
         if abs(self.player.goal_coords.z) - abs(self.player.position.z) < 20:
             return 0
-        if (self.player.position - self.ball.position).length_squared() > \
-            (self.opponent.position - self.ball.position).length_squared():
+        if ((self.player.position - self.ball.position) > 
+            (self.opponent.position - self.ball.position)):
             # return some variable score
             return 0.5
         # Check if closer to ball
@@ -159,12 +165,33 @@ class Retreat(Strategy):
         return 0
 
 
-class GoForSave(Strategy):
+class RunParallelWithBall(Strategy):
+    def get_output(self):
+        angle = self.player.forward - self.ball.ground_direction
+        turn = angle * YAW_SENSITIVITY
+        powerslide = abs(angle) > 2.2 # not as hard as usual
+        boost = self.player.should_boost() and not powerslide
+        return output(yaw=turn, boost=boost, powerslide=powerslide)
+
     def score(self):
+        if (self.ball.ground_speed > CAR_MAX_SPEED and
+            self.ball.going_into_goal(self.player.goal_coords.z)):
+            return int(self.speed < self.ball.ground_speed) * 2
+        return 0 # TODO
+
+
+class GoForSave(Strategy):
+    def get_output(self):
+        intersect = self.player.intersection_point(self.ball)
+        angle = self.player.angle_to(intersect)
+        turn = angle * YAW_SENSITIVITY
+        return output(yaw=turn, boost=self.player.should_boost())
+
+    def score(self):
+        if (self.ball.ground_speed < CAR_MAX_SPEED and 
+            self.ball.going_into_goal(self.player.goal_coords.z)):
+            return int(self.speed > self.ball.ground_speed) * 2
         return 0
-        # todo ...
-        if ball.going_into_goal(self.player.goal_coords.z):
-            return 1
 
 
 class IdleInPlace(Strategy):
