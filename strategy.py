@@ -13,6 +13,8 @@ class StrategyManager:
             GoForBoost(agent),
             GoToGoal(agent),
             IdleInPlace(agent),
+            RunParallelWithBall(agent),
+            LandSafely(agent),
             Retreat(agent)
         ]
         self.strategy = self.options[0]
@@ -60,6 +62,8 @@ class Strategy:
 
     # Override following functions
     def initiate_strategy(self):
+        # not being used ...
+        # perhaps use to calculate ball trajectory etc?
         pass
 
     def get_output(self):
@@ -98,23 +102,33 @@ class GoForBoost(Strategy):
 
 class GoForScore(Strategy):
     def get_output(self):
-        # TODO: take velocity of ball into accord, calculating point of contact
-        # Determine if we should use boost
-        if (self.player.should_dodge_to(self.ball) and 
-            not self.agent.previous_output.powerslide):
+        if (self.player.should_dodge_to(self.ball)):
+            # should buffer previous powerslides somehow
             return self.agent.dodge(self.ball)
         intersect = self.player.intersection_point(self.ball)
+        speed = 1
+        if not self.ball.reachable_from_ground():
+            intersect = self.ball.next_bounce_position()
+            time_to_intersect = self.ball.next_bounce
+            distance = (self.player.position - intersect).length()
+            if self.player.speed * distance > time_to_intersect:
+                speed = 0
+                # somehow. maybe return output here?
+                # or should this be refactored into another strategy
         # EXPERIMENTAL STUFF
         desired_impact = vec3()
         desired_angle = self.ball.desired_angle_to_goal(self.opponent.goal_coords)
         desired_impact.x = intersect.x - BALL_RADIUS * math.sin(desired_angle)
         desired_impact.z = intersect.z - BALL_RADIUS * math.cos(desired_angle)
         angle = self.player.angle_to(desired_impact)
+        # /EXPERIMENTAL STUFF
+        # angle = self.player.angle_to(intersect)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         boost = (self.player.position - intersect).length_squared() > 50**2
         boost |= self.ball.reachable_from_ground()
         boost &= self.player.should_boost() and not powerslide
+        boost &= speed != 0
         return output(yaw=turn, boost=boost, powerslide=powerslide)
 
     def score(self):
@@ -200,6 +214,19 @@ class IdleInPlace(Strategy):
 
     def score(self):
         return 0
+
+
+class LandSafely(Strategy):
+    def get_output(self):
+        pitch = self.player.pitch * -1 * YAW_SENSITIVITY
+        # roll = _something_ # TODO
+        roll = 0
+        powerslide = abs(roll) > 0.2
+        return output(yaw=roll, pitch=pitch, powerslide=powerslide)
+
+    def score(self):
+        return int(self.player.velocity.y < 0 and self.player.is_airbound())
+
 
 class AttemptAerial(Strategy):
     pass

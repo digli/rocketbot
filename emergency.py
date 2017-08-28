@@ -47,6 +47,8 @@ class KickOff(EmergencyStrategy):
             # Calibration error
             self.starting_position = self.agent.player.position.clone()
             return False
+        t = self.agent.player.dodge_mock().time_to_intersect(self.target)
+        return 1.5 < t < 2
         # how long again?
         return (self.starting_position - self.agent.player.position).length_squared() > 6**2
 
@@ -101,10 +103,6 @@ class DodgeTowards(EmergencyStrategy):
 
     def suggest_next_strategy(self):
         return None
-        # return None
-        return Idle(self.agent, self.target)
-        # Try this later
-        return SafeLanding(self.agent, self.target)
 
 
 class Idle(EmergencyStrategy):
