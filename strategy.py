@@ -10,7 +10,7 @@ class StrategyManager:
         self.agent = agent
         self.options = [
             GoForScore(agent),
-            GoForSave(agent),
+            # GoForSave(agent),
             GoForBoost(agent),
             GoToGoal(agent),
             IdleInPlace(agent),
@@ -84,27 +84,17 @@ class GoForBoost(Strategy):
             # No available boosts
             return 0
         dist = (self.player.position - self.target.position).length()
+        angle = self.player.angle_to(self.target.position)
         points = 1
         points -= dist / 150
         points -= self.player.boost / 100
+        points -= abs(angle) / math.pi
         return points
 
 
 class GoForScore(Strategy):
     def get_output(self):
-        if (self.player.should_dodge_to(self.ball)):
-            # should buffer previous powerslides somehow
-            return self.agent.dodge(self.ball)
         intersect = self.player.intersection_point(self.ball)
-        speed = 1
-        if not self.ball.reachable_from_ground():
-            intersect = self.ball.next_bounce_position()
-            time_to_intersect = self.ball.next_bounce
-            distance = (self.player.position - intersect).length()
-            if self.player.speed / distance > time_to_intersect:
-                speed = 0
-                # somehow. maybe return output here?
-                # or should this be refactored into another strategy
         # EXPERIMENTAL STUFF
         desired_impact = vec3()
         desired_angle = self.ball.desired_angle_to_goal(self.opponent.goal_coords)
@@ -112,23 +102,47 @@ class GoForScore(Strategy):
         desired_impact.z = intersect.z - BALL_RADIUS * math.cos(desired_angle)
         angle = self.player.angle_to(desired_impact)
         # /EXPERIMENTAL STUFF
+        if (self.player.should_dodge_to(desired_impact)):
+            return self.agent.dodge(desired_impact)
+        speed = 1
+        if not self.ball.reachable_from_ground():
+            intersect = self.ball.next_bounce_position()
+            time_to_intersect = self.ball.next_bounce
+            distance = (self.player.position - intersect).length()
+            if self.player.speed / distance > time_to_intersect:
+                speed = -1
+                # somehow. maybe return output here?
+                # or should this be refactored into another strategy
         # angle = self.player.angle_to(intersect)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         boost = (self.player.position - intersect).length_squared() > 50**2
         boost |= self.ball.reachable_from_ground()
         boost &= self.player.should_boost() and not powerslide
-        boost &= speed != 0
+        boost &= speed == 1
+        speed *= not powerslide
         return output(yaw=turn, speed=speed, boost=boost, powerslide=powerslide)
 
     def score(self):
-        if self.ball.going_into_goal(self.player.goal_coords.z):
-            return 0
-        # needs a lot of work
         points = 1 + self.player.boost / 100 + self.player.speed / 100
         distance_to_ball = (self.player.position - self.ball.position).length()
-        points -= distance_to_ball / 150 + abs(self.player.angle_to(self.ball)) / math.pi
+        points -= distance_to_ball / 150
+        points -= abs(self.player.angle_to(self.ball)) / math.pi
         return points
+
+
+class GoForSave(Strategy):
+    # Ignored for now, dont know why bot gets stuck in this strategy
+    def get_output(self):
+        intersect = self.player.intersection_point(self.ball)
+        angle = self.player.angle_to(intersect)
+        turn = angle * YAW_SENSITIVITY
+        boost = self.player.should_boost()
+        return output(yaw=turn, boost=boost)
+
+    def score(self):
+        # Gets fucking stuck here and i dont know why
+        return int(self.ball.going_into_goal(self.player))
 
 
 class GoToGoal(Strategy):
@@ -159,6 +173,7 @@ class Retreat(Strategy):
 
     def score(self):
         return 0
+        # needs work
         if abs(self.player.goal_coords.z) - abs(self.player.position.z) < 20:
             return 0
         if ((self.player.position - self.ball.position) > 
@@ -180,22 +195,9 @@ class RunParallelWithBall(Strategy):
 
     def score(self):
         if (self.ball.ground_speed > CAR_MAX_SPEED and
-            self.ball.going_into_goal(self.player.goal_coords.z)):
+            self.ball.going_into_goal(self.player)):
             return int(self.player.speed < self.ball.ground_speed)
         return 0 # TODO
-
-
-class GoForSave(Strategy):
-    def get_output(self):
-        intersect = self.player.intersection_point(self.ball)
-        angle = self.player.angle_to(intersect)
-        turn = angle * YAW_SENSITIVITY
-        boost = self.player.should_boost()
-        return output(yaw=turn, boost=boost)
-
-    def score(self):
-        # Gets fucking stuck here and i dont know why
-        return (self.ball.going_into_goal(self.player.goal_coords.z))
 
 
 class IdleInPlace(Strategy):
@@ -209,12 +211,13 @@ class IdleInPlace(Strategy):
 class LandSafely(Strategy):
     def get_output(self):
         pitch = self.player.pitch * -1 * YAW_SENSITIVITY
-        # roll = _something_ # TODO
-        roll = 0
+        roll = 0 # TODO, player.rotation.up.y ? or rotation.right probably
         powerslide = abs(roll) > 0.2
         return output(yaw=roll, pitch=pitch, powerslide=powerslide)
 
     def score(self):
+        # check if player.up and player.pitch is correct
+        # is_airbound needs improvement before we put this strat in action
         return int(self.player.velocity.y < -1 and self.player.is_airbound())
 
 

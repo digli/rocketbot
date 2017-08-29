@@ -50,37 +50,38 @@ class agent:
         self.boost_tracker = BoostTracker(self.player, self.opponent)
         self.strategy_manager = StrategyManager(self)
         self.previous_output = output().generate_vector()
+        # cached calculations
+        self.time_to_ball_bounce = 0
+        self.next_ball_bounce_position = vec3()
 
     def get_bot_name(self):
         return "DigliBot"
 
     def get_output_vector(self, input):
-        self.player.update(input)
-        self.opponent.update(input)
-        self.ball.update(input)
+        self.player.read_input(input)
+        self.opponent.read_input(input)
+        self.ball.read_input(input)
+
+        self.player.update()
+        self.opponent.update()
+        self.ball.update()
         self.boost_tracker.update()
+        self.update_cached_calculations()
         self.strategy_manager.update()
 
         self.previous_output = self.strategy_manager.get_output()
         return self.previous_output.generate_vector()
 
+    def update_cached_calculations(self):
+        self.time_to_ball_bounce = self.ball.time_to_ground_hit()
+        self.next_ball_bounce_position = self.ball.next_ball_bounce_position(self.time_to_ball_bounce)
+
     def noflip(self):
-        """Trigger NoFlip
-        :return: output object
-        """
         return self.trigger_emergency(emergency.NoFlip(self))
 
     def dodge(self, target):
-        """Trigger DodgeTowards
-        :param target: vec3
-        :return: output object
-        """
         return self.trigger_emergency(emergency.DodgeTowards(self, target))
 
     def trigger_emergency(self, emergency):
-        """Trigger an emergency
-        :param emergency: EmergencyStrategy
-        :return: output object
-        """
         self.strategy_manager.emergency_strategy = emergency
         return emergency.get_output()

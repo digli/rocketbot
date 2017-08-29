@@ -3,7 +3,7 @@ import math
 YAW_SENSITIVITY = 7
 DODGE_SENSITIVITY = 3
 KICKOFF_YAW_SENSITIVITY = 8
-POWERSLIDE_THRESHOLD = 1.6 # Radians (REMEMBER TO TRY SMALLER VALUES)
+POWERSLIDE_THRESHOLD = 1.6 # Radians
 STICK_MAX = 32767
 STICK_MIDDLE = 16383
 STICK_MIN = 0
@@ -29,6 +29,8 @@ BIG_BOOST_RADIUS_SQUARED = 16 # idk, test this number
 BIG_BOOST_RESPAWN_TIME = 10
 SMALL_BOOST_RADIUS_SQUARED = 4 # idk, test this number
 SMALL_BOOST_RESPAWN_TIME = 5 # idk, test this number
+
+BOOST_CONSUMPTION_RATE = 0.333
 
 # https://docs.google.com/spreadsheets/d/1A6jBshi5szfjIiPFmTbJXzBxtVhxEHPjmKC0xcSCUGk/edit#gid=1536046193
 # Are these unreal units? probably.

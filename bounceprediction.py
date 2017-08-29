@@ -2,6 +2,19 @@ from tkinter import *
 import QuadratBot
 import copy
 
+def time_to_ball_impact(car):
+    # stuff
+
+def y(t):
+    g = 13 # m/s^2 
+    return ball.position.y - BALL_RADIUS + ball.velocity.y * t - g * t**2 / 2
+
+def x(t):
+    return ball.position.x + ball.velocity.x * 0.97**t
+
+def z(t):
+    return ball.position.z + ball.velocity.z * 0.97**t
+
 
 class display:
     canvas_width = 240

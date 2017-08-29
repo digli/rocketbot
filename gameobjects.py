@@ -10,10 +10,10 @@ class Car(KineticObject):
         self.speed = 0
         self.forward = 0
         self.pitch = 0
+        self.goal_coords = vec3()
         self.rotation = Rotation()
 
-    def update(self, input):
-        self.read_input(input)
+    def update(self):
         self.speed = self.velocity.length()
         self.forward = self.rotation.yaw()
         self.pitch = self.rotation.pitch()
@@ -30,6 +30,9 @@ class Car(KineticObject):
     def should_powerslide(self, angle):
         return self.on_ground() and abs(angle) > POWERSLIDE_THRESHOLD
 
+    def boost_needed(self, delta_time):
+        return delta_time * BOOST_CONSUMPTION_RATE
+
     def should_boost(self):
         return self.below_max_speed() and not self.is_airbound()
 
@@ -37,9 +40,11 @@ class Car(KineticObject):
         mock = Car()
         mock.position = self.position.clone()
         mock.velocity = self.velocity.clone()
+        mock.rotation = self.rotation
         speed_increment = min(DODGE_SPEED_INCREMENT, CAR_MAX_SPEED - self.speed)
         mock.velocity.x += math.sin(self.forward) * speed_increment
         mock.velocity.z += math.cos(self.forward) * speed_increment
+        mock.update()
         return mock
 
     def should_dodge_to(self, target):
@@ -55,14 +60,11 @@ class Car(KineticObject):
 
     def should_dodge_to_ball(self, ball):
         speed_ok = MIN_DODGE_SPEED < self.speed < MAX_DODGE_SPEED
-        angle_to_target = self.angle_to(ball)
-        if abs(angle_to_target) > 0.1:
-            return False
         within_impact_range = 0.02 < self.time_to_intersect(ball) < 0.08
         target_too_close = 0.5 < self.dodge_mock().time_to_intersect(ball) < FULL_DODGE_DURATION
         if within_impact_range and ball.reachable_from_ground():
             return True
-        return not target_too_close and speed_ok
+        return not target_too_close and speed_ok and abs(self.angle_to(ball)) < 0.1
 
     def should_dodge_to_position(self, target):
         angle_to_target = self.angle_to(target)
@@ -129,22 +131,26 @@ class Car(KineticObject):
         d2 = other.velocity
         if d1.z * d2.x - d1.x * d2.z == 0:
             return math.inf
-        # abs to stop bot from trying to travel back in time
-        return abs((c.x * d2.z - c.z * d2.x) / (d1.z * d2.x - d1.x * d2.z))
+        time_estimate = (c.x * d2.z - c.z * d2.x) / (d1.z * d2.x - d1.x * d2.z)
+        if time_estimate < 0:
+            # not quite sure
+            # maybe just return abs(time_estimate)
+            return math.inf
+        return time_estimate
 
     def intersection_point(self, other):
         t = self.time_to_intersect(other)
         if (t == math.inf):
             return other.position
-        t = abs(t)
         x = other.position.x + other.velocity.x * t
         z = other.position.z + other.velocity.z * t
         return vec3(x, 0, z)
 
+
 class Orange(Car):
     def __init__(self):
         super().__init__()
-        self.goal_coords = vec3(z=FIELD_HALF_Z)
+        self.goal_coords.z = FIELD_HALF_Z
 
     def read_input(self, input):
         self.boost = input[0][37]
@@ -156,7 +162,7 @@ class Orange(Car):
 class Blue(Car):
     def __init__(self):
         super().__init__()
-        self.goal_coords = vec3(z=-FIELD_HALF_Z)
+        self.goal_coords.z = -FIELD_HALF_Z
 
     def read_input(self, input):
         self.boost = input[0][0]
@@ -172,9 +178,11 @@ class Ball(KineticObject):
         self.ground_direction = 0
         self.ground_speed = 0
 
-    def update(self, input):
+    def read_input(self, input):
         self.position.set(x=input[0][7], y=input[0][6], z=input[0][2])
         self.velocity.set(x=input[0][31], y=input[0][32], z=input[0][33])
+        
+    def update(self):
         self.ground_direction = math.atan2(self.velocity.x, self.velocity.z)
         self.ground_speed = math.hypot(self.velocity.x, self.velocity.z)
         self.next_bounce = 0 if self.reachable_from_ground() else self.time_to_ground_hit()
@@ -198,30 +206,28 @@ class Ball(KineticObject):
             return 0
         return -1 * p / 2.0 + math.sqrt((p / 2.0)**2 - q)
 
-    def next_bounce_position(self):
+    def next_bounce_position(self, dt=None):
         if (abs(self.velocity.y) < 0.5):
-            # again, arbitrary guess
             return self.position.clone()
-        dt = self.time_to_ground_hit()
-        x = self.position.x + self.velocity.x * dt * 0.97**dt # not sure if this is right
+        if dt is None:
+            dt = self.time_to_ground_hit()
+        x = self.position.x + self.velocity.x * dt * 0.97**dt
         z = self.position.z + self.velocity.z * dt * 0.97**dt
         return vec3(x, 0, z)
 
-    def going_into_goal(self, goal_z):
+    def going_into_goal(self, player):
+        goal_z = player.goal_coords.z
         if goal_z * math.cos(self.ground_direction) < 0 or self.ground_speed == 0:
             # Opposite direction
             return False
         distance_to_wall = goal_z - self.position.z
         collision_x = self.position.x + math.tan(self.ground_direction) * distance_to_wall
-        if abs(collision_x) < GOAL_HALF_WIDTH:
-            print('x: {}, z: {}'.format(collision_x, goal_z))
-            return True
-        return False
+        return abs(collision_x) < GOAL_HALF_WIDTH
 
     def account_for_radius(self, angle):
         position = self.position.clone()
-        position.x += math.cos(angle) * BALL_RADIUS
-        position.z += math.sin(angle) * BALL_RADIUS
+        position.x += math.cos(angle) * BALL_RADIUS * 0.6 # test constant
+        position.z += math.sin(angle) * BALL_RADIUS * 0.6
         return position
 
     def predict_direction_after_impact(self, car):
@@ -230,6 +236,14 @@ class Ball(KineticObject):
         vz = self.velocity.z + math.sin(impact_angle) * car.velocity.z * CAR_FORCE
         return math.atan2(vx, vz)
 
+    def predict_position(self, delta_time):
+        speed_loss = 0.97**delta_time
+        x = self.position.x + self.velocity.x * speed_loss
+        z = self.position.z + self.velocity.z * speed_loss
+        y = self.position.y - BALL_RADIUS + self.velocity.y * delta_time \
+            - GRAVITY_CONSTANT * delta_time**2 / 2
+        return vec3(x, y, z)
+
     def angle_to_goal(self, goal):
         direction = goal - self.position
         angle_to_target = math.atan2(direction.x, direction.z)
@@ -237,4 +251,6 @@ class Ball(KineticObject):
         return math.atan2(math.sin(diff), math.cos(diff))
 
     def desired_angle_to_goal(self, goal):
+        # TODO: Test this
+        # return (math.pi + self.angle_to_goal(goal)) / CAR_FORCE
         return -1 * self.angle_to_goal(goal) / CAR_FORCE
