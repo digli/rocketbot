@@ -1,6 +1,6 @@
 from gameobjects import Blue, Orange, Ball
 from boost import BoostTracker
-from utils import output
+from utils import output, vec3
 from strategy import StrategyManager
 import emergency
 
@@ -74,7 +74,7 @@ class agent:
 
     def update_cached_calculations(self):
         self.time_to_ball_bounce = self.ball.time_to_ground_hit()
-        self.next_ball_bounce_position = self.ball.next_ball_bounce_position(self.time_to_ball_bounce)
+        self.next_ball_bounce_position = self.ball.next_bounce_position(self.time_to_ball_bounce)
 
     def noflip(self):
         return self.trigger_emergency(emergency.NoFlip(self))

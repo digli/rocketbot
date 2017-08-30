@@ -65,6 +65,8 @@ class Strategy:
 
 class GoForBoost(Strategy):
     def get_output(self):
+        if self.target is None:
+            return GoForScore(self.agent).get_output()
         if not self.target.is_available():
             self.target = self.boost_tracker.closest_big_boost()
             if self.target is None:
@@ -98,19 +100,19 @@ class GoForScore(Strategy):
         # EXPERIMENTAL STUFF
         desired_impact = vec3()
         desired_angle = self.ball.desired_angle_to_goal(self.opponent.goal_coords)
-        desired_impact.x = intersect.x - BALL_RADIUS * math.sin(desired_angle)
-        desired_impact.z = intersect.z - BALL_RADIUS * math.cos(desired_angle)
+        desired_impact.x = intersect.x + BALL_RADIUS * math.sin(desired_angle)
+        desired_impact.z = intersect.z + BALL_RADIUS * math.cos(desired_angle)
         angle = self.player.angle_to(desired_impact)
         # /EXPERIMENTAL STUFF
         if (self.player.should_dodge_to(desired_impact)):
             return self.agent.dodge(desired_impact)
         speed = 1
-        if not self.ball.reachable_from_ground():
-            intersect = self.ball.next_bounce_position()
-            time_to_intersect = self.ball.next_bounce
-            distance = (self.player.position - intersect).length()
-            if self.player.speed / distance > time_to_intersect:
-                speed = -1
+        # if not self.ball.reachable_from_ground():
+        #     intersect = self.ball.next_bounce_position()
+        #     time_to_intersect = self.ball.next_bounce
+        #     distance = (self.player.position - intersect).length()
+        #     if self.player.speed / distance > time_to_intersect:
+        #         speed = -1
                 # somehow. maybe return output here?
                 # or should this be refactored into another strategy
         # angle = self.player.angle_to(intersect)
@@ -147,8 +149,8 @@ class GoForSave(Strategy):
 
 class GoToGoal(Strategy):
     def get_output(self):
-        if self.player.should_dodge_to(self.target.position):
-            return self.agent.dodge(self.target.position)
+        if self.player.should_dodge_to(self.player.goal_coords):
+            return self.agent.dodge(self.player.goal_coords)
         angle = self.player.angle_to(self.player.goal_coords)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)

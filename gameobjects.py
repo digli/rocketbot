@@ -60,11 +60,12 @@ class Car(KineticObject):
 
     def should_dodge_to_ball(self, ball):
         speed_ok = MIN_DODGE_SPEED < self.speed < MAX_DODGE_SPEED
-        within_impact_range = 0.02 < self.time_to_intersect(ball) < 0.08
+        within_impact_range = 0.1 < self.time_to_intersect(ball) < 0.3
+        angle = abs(self.angle_to(ball))
         target_too_close = 0.5 < self.dodge_mock().time_to_intersect(ball) < FULL_DODGE_DURATION
-        if within_impact_range and ball.reachable_from_ground():
+        if within_impact_range and ball.reachable_from_ground() and angle < 0.2:
             return True
-        return not target_too_close and speed_ok and abs(self.angle_to(ball)) < 0.1
+        return not target_too_close and speed_ok and angle < 0.1
 
     def should_dodge_to_position(self, target):
         angle_to_target = self.angle_to(target)
@@ -251,6 +252,4 @@ class Ball(KineticObject):
         return math.atan2(math.sin(diff), math.cos(diff))
 
     def desired_angle_to_goal(self, goal):
-        # TODO: Test this
-        # return (math.pi + self.angle_to_goal(goal)) / CAR_FORCE
-        return -1 * self.angle_to_goal(goal) / CAR_FORCE
+        return -1 * self.angle_to_goal(goal)
