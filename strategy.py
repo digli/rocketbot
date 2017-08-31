@@ -100,19 +100,21 @@ class GoForScore(Strategy):
         # EXPERIMENTAL STUFF
         desired_impact = vec3()
         desired_angle = self.ball.desired_angle_to_goal(self.opponent.goal_coords)
-        desired_impact.x = intersect.x + BALL_RADIUS * math.sin(desired_angle)
-        desired_impact.z = intersect.z + BALL_RADIUS * math.cos(desired_angle)
+        desired_impact.x = intersect.x - BALL_RADIUS * math.sin(desired_angle) * 0.6
+        desired_impact.z = intersect.z - BALL_RADIUS * math.cos(desired_angle) * 0.6
         angle = self.player.angle_to(desired_impact)
         # /EXPERIMENTAL STUFF
         if (self.player.should_dodge_to(desired_impact)):
             return self.agent.dodge(desired_impact)
+        if self.player.should_dodge_to(self.ball):
+            return self.agent.dodge(desired_impact)
         speed = 1
-        # if not self.ball.reachable_from_ground():
-        #     intersect = self.ball.next_bounce_position()
-        #     time_to_intersect = self.ball.next_bounce
-        #     distance = (self.player.position - intersect).length()
-        #     if self.player.speed / distance > time_to_intersect:
-        #         speed = -1
+        if not self.ball.reachable_from_ground():
+            intersect = self.ball.next_bounce_position()
+            time_to_intersect = self.ball.next_bounce
+            distance = (self.player.position - intersect).length()
+            if self.player.speed / distance > time_to_intersect:
+                speed = -1
                 # somehow. maybe return output here?
                 # or should this be refactored into another strategy
         # angle = self.player.angle_to(intersect)

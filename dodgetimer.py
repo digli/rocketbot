@@ -19,17 +19,15 @@ class DodgeTimer:
             if now - self.start < self.d0:
                 return self.state
             self.state = JUMP_BUFFERING
+            self.first_buffer = now
 
         if self.state == JUMP_BUFFERING:
-            if self.first_buffer is None:
-                self.first_buffer = now
             if now - self.first_buffer < self.d1:
                 return self.state
             self.state = JUMP_DODGING
+            self.second_buffer = now
 
         if self.state == JUMP_DODGING:
-            if self.second_buffer is None:
-                self.second_buffer = now
             if now - self.second_buffer < self.d2:
                 return self.state
             self.state = JUMP_FINISHED

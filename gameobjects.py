@@ -60,7 +60,7 @@ class Car(KineticObject):
 
     def should_dodge_to_ball(self, ball):
         speed_ok = MIN_DODGE_SPEED < self.speed < MAX_DODGE_SPEED
-        within_impact_range = 0.1 < self.time_to_intersect(ball) < 0.3
+        within_impact_range = 0.07 < self.time_to_intersect(ball) < 0.1
         angle = abs(self.angle_to(ball))
         target_too_close = 0.5 < self.dodge_mock().time_to_intersect(ball) < FULL_DODGE_DURATION
         if within_impact_range and ball.reachable_from_ground() and angle < 0.2:
@@ -127,7 +127,7 @@ class Car(KineticObject):
         if not isinstance(other, Ball):
             raise TypeError('param other should be either vec3 or Ball')
         # https://www.gamedev.net/forums/topic/647810-intersection-point-of-two-vectors/
-        c = self.position - other.account_for_radius(self.angle_to(other))
+        c = self.position
         d1 = self.velocity
         d2 = other.velocity
         if d1.z * d2.x - d1.x * d2.z == 0:
