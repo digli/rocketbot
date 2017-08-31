@@ -73,6 +73,9 @@ class vec3:
         self.y /= length
         self.z /= length
 
+    def ground_direction(self):
+        return math.atan2(self.x, self.z)
+
     def length_squared(self):
         # idk how slow math.sqrt is
         return self.x**2 + self.y**2 + self.z**2

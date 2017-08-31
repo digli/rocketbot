@@ -9,13 +9,15 @@ class StrategyManager:
     def __init__(self, agent):
         self.agent = agent
         self.options = [
-            GoForScore(agent),
+            Score(agent),
+            GrabBoost(agent),
+            DodgeIntoBall(agent),
+            # GoForScore(agent),
             # GoForSave(agent),
-            GoForBoost(agent),
-            GoToGoal(agent),
-            IdleInPlace(agent),
-            RunParallelWithBall(agent),
-            # LandSafely(agent),
+            # GoToGoal(agent),
+            # IdleInPlace(agent),
+            # RunParallelWithBall(agent),
+            LandSafely(agent),
             Retreat(agent)
         ]
         self.strategy = self.options[0]
@@ -63,45 +65,81 @@ class Strategy:
         return 0
 
 
-class GoForBoost(Strategy):
+class GrabBoost(Strategy):
     def get_output(self):
-        if self.target is None:
-            return GoForScore(self.agent).get_output()
-        if not self.target.is_available():
-            self.target = self.boost_tracker.closest_big_boost()
-            if self.target is None:
-                return output(speed=0)
         angle = self.player.angle_to(self.target.position)
         if self.player.should_dodge_to(self.target.position):
             return self.agent.dodge(self.target.position)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
-        # boosting while powersliding is redundant
         boost = not powerslide and self.player.should_boost()
         return output(yaw=turn, speed=1, boost=boost, powerslide=powerslide)
 
     def score(self):
-        self.target = self.boost_tracker.closest_big_boost()
+        self.target = self.player.optimal_boost
         if self.target is None:
             # No available boosts
             return 0
-        dist = (self.player.position - self.target.position).length()
-        angle = self.player.angle_to(self.target.position)
+        distance = (self.player.position - self.target.position).length()
         points = 1
-        points -= dist / 150
+        points -= distance / 150
         points -= self.player.boost / 100
-        points -= abs(angle) / math.pi
+        points -= abs(self.player.angle_to(self.target.position)) / math.pi
         return points
 
 
+class DodgeIntoBall(Strategy):
+    # Helper to trigger emergency without doing it in other strategies
+    def get_output(self):
+        return self.agent.dodge(self.ball.position)
+
+    def score(self):
+        return 1 - self.player.time_to_ball
+
+
+class Score(Strategy):
+    def get_output(self):
+        angle = self.player.angle_to(self.player.ball_intersection_point)
+        turn = angle * YAW_SENSITIVITY
+        acc = int(self.player.desired_ball_impact_speed + 1 < self.player.speed)
+        powerslide = self.player.should_powerslide()
+        boost = self.player.desired_ball_impact_speed - 1 > self.player.speed
+        boost &= not powerslide
+        return output(turn=turn, speed=acc, boost=boost, powerslide=powerslide)
+
+    def score(self):
+        # hmmmmmmm
+        close_enough = self.player.time_to_ball - self.opponent.time_to_ball > -0.5
+        angle = self.player.angle_to(self.player.ball_intersection_point)
+        points = 1
+        points -= max(abs(angle) - POWERSLIDE_THRESHOLD, 0)
+        return points
+
+        points = 1 + self.player.boost / 100 + self.player.speed / 100
+        distance_to_ball = (self.player.position - self.ball.position).length()
+        points -= distance_to_ball / 150
+        points -= abs(self.player.angle_to(self.ball)) / math.pi
+        return points
+
+
+class BumpEnemy(Strategy):
+    def score(self):
+        if not self.ball.going_into_goal(self.opponent):
+            return 0
+        # Determine if we can intercept opponents direction to ball
+        # Predict opponents turn arc, check his boost
+        return 0
+
+
 class GoForScore(Strategy):
+    # this strategy has way too much resposibility, refactor into smaller strats
     def get_output(self):
         intersect = self.player.intersection_point(self.ball)
         # EXPERIMENTAL STUFF
         desired_impact = vec3()
         desired_angle = self.ball.desired_angle_to_goal(self.opponent.goal_coords)
-        desired_impact.x = intersect.x - BALL_RADIUS * math.sin(desired_angle) * 0.6
-        desired_impact.z = intersect.z - BALL_RADIUS * math.cos(desired_angle) * 0.6
+        desired_impact.x = intersect.x + BALL_RADIUS * math.sin(desired_angle) * 0.6
+        desired_impact.z = intersect.z + BALL_RADIUS * math.cos(desired_angle) * 0.6
         angle = self.player.angle_to(desired_impact)
         # /EXPERIMENTAL STUFF
         if (self.player.should_dodge_to(desired_impact)):
@@ -215,8 +253,8 @@ class IdleInPlace(Strategy):
 class LandSafely(Strategy):
     def get_output(self):
         pitch = self.player.pitch * -1 * YAW_SENSITIVITY
-        roll = 0 # TODO, player.rotation.up.y ? or rotation.right probably
         powerslide = abs(roll) > 0.2
+        roll = int(powerslide)
         return output(yaw=roll, pitch=pitch, powerslide=powerslide)
 
     def score(self):

@@ -51,6 +51,18 @@ class BoostTracker:
             BigBoost(BOOST_CORNER_X, -BOOST_CORNER_Z)
         ]
 
+    def big_boost_score(self, boost, player):
+        distance_squared = (boost.position - player.position).length_squared()
+        angle = abs(player.angle_to(boost))
+        return distance_squared * angle
+
+    def find_optimal_boost(self):
+        # hypothetical stuff
+        available = [b for b in self.big_boosts if b.is_available()]
+        if len(available) == 0:
+            return None
+        return min(available, key=lambda b: self.big_boost_score(b, self.player))
+
     def closest_big_boost(self):
         available = [b for b in self.big_boosts if b.is_available()]
         if len(available) == 0:
