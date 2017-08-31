@@ -1,6 +1,7 @@
 import math
 from constants import *
 from utils import vec3, world, KineticObject, Rotation
+from ball import Ball
 
 
 class Car(KineticObject):
@@ -18,28 +19,34 @@ class Car(KineticObject):
         self.forward = self.rotation.yaw()
         self.pitch = self.rotation.pitch()
 
-    def update_cached_calculations(self, ball, boost_tracker):
+    def update_cached_calculations(self, agent):
         # inherently flawed as we're changing intersect point later on. what do?
-        self.time_to_ball = self.calculate_time_to_ball(ball)
-        desired_ball_direction = self.opponent.goal_coords - intersection_point
+        self.time_to_ball = self.calculate_time_to_ball(agent.ball)
+        intersect = self.calculate_intersection_point(agent.ball, self.time_to_ball)
+        desired_ball_direction = agent.opponent.goal_coords - intersect
         # TODO: factor in deceleration to ball.velocity
-        desired_impact_direction = desired_ball_direction - self.ball.velocity 
+        desired_impact_direction = desired_ball_direction - agent.ball.velocity 
         self.desired_ball_impact_speed = desired_impact_direction.length()
         # account for ball radius
         required_impact_angle = desired_impact_direction.ground_direction() + math.pi
-        intersect = self.calculate_intersection_point(ball, self.time_to_ball)
-        intersect.x += BALL_RADIUS * math.sin(self.required_impact_angle)
-        intersect.z += BALL_RADIUS * math.cos(self.required_impact_angle)
+        intersect.x += BALL_RADIUS * math.sin(required_impact_angle) * 0.6
+        intersect.z += BALL_RADIUS * math.cos(required_impact_angle) * 0.6
         # we probably want to translate intersect to (car - closest_edge/corner)
         # how to factor in car.forward?
+        self.will_hit_ball = (self.time_to_ball < 10
+            and -FIELD_HALF_Z < intersect.z < FIELD_HALF_Z
+            and -FIELD_HALF_X < intersect.x < FIELD_HALF_X)
         self.ball_intersection_point = intersect
-        self.optimal_boost = boost_tracker.find_optimal_boost()
+        self.optimal_boost = agent.boost_tracker.find_optimal_boost()
 
     def turn_radius(self):
         # HYPOTHETICAL VALUES
         if self.speed < CAR_MAX_SPEED_WITHOUT_BOOST:
             return CAR_TURN_RADIUS
-        return CAR_TURN_RADIUS + self.speed / CAR_MAX_SPEED * 3
+        radius_increase = CAR_TURN_RADIUS - CAR_BOOST_TURN_RADIUS
+        increase_ammount = (self.speed - CAR_MAX_SPEED_WITHOUT_BOOST) / \
+            (CAR_MAX_SPEED - CAR_MAX_SPEED_WITHOUT_BOOST)
+        return CAR_TURN_RADIUS + increase_ammount / radius_increase
 
     def below_max_speed(self):
         return self.speed < CAR_SUPERSONIC_THRESHOLD
@@ -91,22 +98,21 @@ class Car(KineticObject):
         raise TypeError('{} is neither Ball nor vec3'.format(target))
 
     def should_dodge_to_ball(self, ball):
-        within_impact_range = 0.07 < self.time_to_intersect(ball) < 0.1
+        within_impact_range = 0.07 < self.time_to_ball < 0.1 or self.speed < ball.ground_speed
         angle = abs(self.angle_to(ball))
         return within_impact_range and ball.reachable_from_ground() and angle < 0.2
 
     def should_dodge_to_position(self, target):
         angle_to_target = self.angle_to(target)
-        if abs(angle_to_target) > 0.1:
+        if abs(angle_to_target) > 0.01:
             return False
         speed_ok = MIN_DODGE_SPEED < self.speed < MAX_DODGE_SPEED
         time_to_target = self.dodge_mock().calculate_time_to_point(target)
-        return speed_ok and time_to_target < FULL_DODGE_DURATION
+        return speed_ok and time_to_target > FULL_DODGE_DURATION
 
     def angle_to(self, target):
-        """:param target: vec3 or KineticObject"""
         # TODO: vec3 angles? using rotation.forward or whatever
-        if isinstance(target, KineticObject):
+        if hasattr(target, 'position'):
             target = target.position
         direction = target - self.position
         if self.on_wall():
@@ -134,7 +140,6 @@ class Car(KineticObject):
         z = math.cos(angle) * OCTANE_MID_TO_CORNER
         return vec3(x, OCTANE_HEIGHT, z)
 
-
     def calculate_time_to_ball(self, ball):
         # https://www.gamedev.net/forums/topic/647810-intersection-point-of-two-vectors/
         c = self.position
@@ -148,13 +153,13 @@ class Car(KineticObject):
         relative_velocity = self.speed * math.cos(self.angle_to(target))
         if relative_velocity == 0:
             return math.inf
-        return (self.position - other).length() / relative_velocity
+        return (self.position - target).length() / relative_velocity
 
     def calculate_intersection_point(self, ball, dt):
-        if dt == math.inf:
+        if dt < 0:
             return ball.position
-        x = ball.position.x + ball.velocity.x * dt
-        z = ball.position.z + ball.velocity.z * dt
+        x = ball.position.x + ball.velocity.x * min(dt, 2)
+        z = ball.position.z + ball.velocity.z * min(dt, 2)
         return vec3(x, ball.position.y, z)
 
 

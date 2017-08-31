@@ -19,8 +19,8 @@ class Ball(KineticObject):
         self.ground_direction = self.velocity.ground_direction()
         self.ground_speed = math.hypot(self.velocity.x, self.velocity.z)
         self.next_bounce = 0 if self.reachable_from_ground() else self.time_to_ground_hit()
-        self.time_to_bounce = 0 if self.reachable_from_ground() else self.ball.time_to_ground_hit()
-        self.next_bounce_position = self.ball.next_bounce_position(self.time_to_bounce)
+        self.time_to_bounce = 0 if self.reachable_from_ground() else self.time_to_ground_hit()
+        self.next_bounce_position = self.get_next_bounce_position(self.time_to_bounce)
 
     def reachable_from_ground(self):
         # with an velocity of 3.5, the ball will reach max y of 0.94 
@@ -40,7 +40,7 @@ class Ball(KineticObject):
             return 0
         return -1 * p / 2.0 + math.sqrt((p / 2.0)**2 - q)
 
-    def next_bounce_position(self, dt=None):
+    def get_next_bounce_position(self, dt=None):
         if (abs(self.velocity.y) < 0.5):
             return self.position.clone()
         if dt is None:

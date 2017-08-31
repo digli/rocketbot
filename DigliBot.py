@@ -62,6 +62,8 @@ class agent:
 
         self.player.update()
         self.opponent.update()
+        self.player.update_cached_calculations(self)
+        self.opponent.update_cached_calculations(self)
         self.ball.update()
         self.boost_tracker.update()
         self.strategy_manager.update()

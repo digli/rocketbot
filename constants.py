@@ -58,7 +58,8 @@ CAR_MAX_SPEED = 46 # m/s
 CAR_MAX_SPEED_WITHOUT_BOOST = 28.3
 CAR_SUPERSONIC_THRESHOLD = CAR_MAX_SPEED - 2 # change if needed
 CAR_FORCE = 2 # ?
-CAR_TURN_RADIUS = 10 # test this
+CAR_TURN_RADIUS = 10.9
+CAR_BOOST_TURN_RADIUS = 23.42
 
 DODGE_TIME_LIMIT = 2 # (seconds) according to random guide on steam
 MIN_DODGE_SPEED = 20 # try this out too, could be 20 or smth
