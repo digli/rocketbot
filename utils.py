@@ -42,14 +42,16 @@ class vec3:
         return vec3(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def __mul__(self, other):
-        # Dot product
-        return self.x * other.x + self.y * other.y + self.z * other.z
+        return vec3(self.x * other, self.y * other, self.z * other)
 
     def __gt__(self, other):
         return self.length_squared() > other.length_squared()
 
     def __lt__(self, other):
         return self.length_squared() < other.length_squared()
+
+    def dot_product(self, other):
+        return self.x * other.x + self.y * other.y + self.z * other.z
 
     def copy(self, other):
         self.x = other.x

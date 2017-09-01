@@ -84,6 +84,42 @@ class Ball(KineticObject):
 
     def predict_path(self, timestep, iterations=100):
         bounce_reduction = 0.7
-        # TODO
-        # also, this should render self.next_bounce useless
-        return []
+        perpendicular_loss = 0.6
+        speed_loss = 0.97 ** timestep
+        gravity = timestep * GRAVITY_CONSTANT / 2
+        points = []
+        previous = Ball()
+        previous.position.copy(self.position)
+        previous.velocity.copy(self.velocity)
+
+        wall_x = FIELD_HALF_X - BALL_RADIUS
+        wall_z = FIELD_HALF_Z - BALL_RADIUS
+        ground = BALL_RADIUS
+
+        for i in range(iterations):
+            mock = Ball()
+            mock.velocity.copy(previous.velocity)
+            mock.position = previous.position + (previous.velocity * timestep)
+            # check bounces
+            if abs(mock.position.x) > wall_x:
+                # pertrusion = math.copysign(wall_x - abs(mock.position.x), mock.position.x)
+                # mock.position.x = wall_z + (1 + perpendicular_loss) * pertrusion
+                # How do we keep ball from getting stuck in wall?
+                mock.velocity.x *= -1 * perpendicular_loss
+                mock.velocity.z *= bounce_reduction
+            if abs(mock.position.z) > wall_z:
+                # pertrusion = wall_z - abs(mock.position.z)
+                # mock.position.z += math.copysign(mock.position.z, pertrusion)
+                mock.velocity.x *= bounce_reduction
+                mock.velocity.z *= -1 * perpendicular_loss
+            # TODO: Curved walls / corners
+            # Does ball lose speed upon bouncing on ground?
+            if mock.position.y - BALL_RADIUS < 0:
+                mock.position.y = 2 * BALL_RADIUS - mock.position.y
+                mock.velocity.y *= -1 * perpendicular_loss
+            mock.velocity.x *= speed_loss
+            mock.velocity.z *= speed_loss
+            mock.velocity.y -= gravity
+            points.append(mock)
+            previous = mock
+        return points
