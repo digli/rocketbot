@@ -81,3 +81,9 @@ class Ball(KineticObject):
 
     def desired_angle_to_goal(self, goal):
         return math.pi + self.angle_to_goal(goal)
+
+    def predict_path(self, timestep, iterations=100):
+        bounce_reduction = 0.7
+        # TODO
+        # also, this should render self.next_bounce useless
+        return []

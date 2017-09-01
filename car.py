@@ -40,13 +40,16 @@ class Car(KineticObject):
         self.optimal_boost = agent.boost_tracker.find_optimal_boost()
 
     def turn_radius(self):
-        # HYPOTHETICAL VALUES
+        # somewhat accurate values i guess, the LERP might be very off though
         if self.speed < CAR_MAX_SPEED_WITHOUT_BOOST:
             return CAR_TURN_RADIUS
         radius_increase = CAR_TURN_RADIUS - CAR_BOOST_TURN_RADIUS
         increase_ammount = (self.speed - CAR_MAX_SPEED_WITHOUT_BOOST) / \
             (CAR_MAX_SPEED - CAR_MAX_SPEED_WITHOUT_BOOST)
         return CAR_TURN_RADIUS + increase_ammount / radius_increase
+
+    def angular_velocity(self):
+        return self.speed / self.turn_radius()
 
     def below_max_speed(self):
         return self.speed < CAR_SUPERSONIC_THRESHOLD
@@ -74,6 +77,48 @@ class Car(KineticObject):
         on_z_wall = abs(self.position.z) > FIELD_HALF_Z - CAR_HEIGHT_THRESHOLD
         car_normal = self.rotation.up.y
         return (on_x_wall or on_z_wall) and abs(car_normal) < 0.01
+
+    def straight_forward_mock(self, dt=0.0167):
+        mock = Car()
+        mock.position.copy(self.position.clone())
+        mock.velocity.copy(self.velocity.clone())
+        # assume no change in velocity
+        mock.position.x += mock.velocity.x * dt
+        mock.position.z += mock.velocity.z * dt
+        mock.forward = self.forward
+        return mock
+
+    def left_arc_mock(self, dt=0.0167):
+        r = self.turn_radius()
+        av = self.angular_velocity()
+        theta = av * dt
+        arc_center = self.position.clone()
+        arc_center.x += r * math.sin(self.forward + math.pi * 0.5)
+        arc_center.z += r * math.cos(self.forward + math.pi * 0.5)
+        mock = Car()
+        mock.velocity.copy(self.velocity)
+        mock.velocity.rotate_zx(theta)
+        mock.position.copy(arc_center)
+        mock.position.x += r * math.sin(self.forward + math.pi * 1.5 + theta)
+        mock.position.z += r * math.cos(self.forward + math.pi * 1.5 + theta)
+        mock.forward = mock.velocity.ground_direction()
+        return mock
+
+    def right_arc_mock(self, dt=0.0167):
+        r = self.turn_radius()
+        av = self.angular_velocity()
+        theta = -1 * av * dt
+        arc_center = self.position.clone()
+        arc_center.x += r * math.sin(self.forward + math.pi * 1.5)
+        arc_center.z += r * math.cos(self.forward + math.pi * 1.5)
+        mock = Car()
+        mock.velocity.copy(self.velocity)
+        mock.velocity.rotate_zx(theta)
+        mock.position.copy(arc_center)
+        mock.position.x += r * math.sin(self.forward + math.pi * 0.5 + theta)
+        mock.position.z += r * math.cos(self.forward + math.pi * 0.5 + theta)
+        mock.forward = mock.velocity.ground_direction()
+        return mock
 
     def dodge_mock(self):
         mock = Car()

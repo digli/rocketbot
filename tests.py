@@ -1,6 +1,7 @@
 from constants import *
 from utils import *
-from gameobjects import *
+from car import *
+from ball import *
 import unittest
 
 blue = Blue()
@@ -25,6 +26,17 @@ class TestBall(unittest.TestCase):
         self.assertFalse(ball.going_into_goal(orange))
 
 class TestCar(unittest.TestCase):
+
+    def test_arc_prediction(self):
+        car = Car()
+        car.velocity.set(3, 0, 10)
+        car.speed = car.velocity.length()
+        car.forward = car.velocity.ground_direction()
+        left = car.left_arc_mock()
+        right = car.right_arc_mock()
+        straight = car.straight_forward_mock()
+        self.assertTrue(left.position.x > straight.position.x > right.position.x)
+        self.assertTrue(left.forward > straight.forward > right.forward)
 
     def test_dodge_mock(self):
         car = Car()

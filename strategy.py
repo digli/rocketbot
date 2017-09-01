@@ -68,6 +68,15 @@ class Strategy:
         return 0
 
 
+class MockPrediction(Strategy):
+    # TODO
+    def get_output(self):
+        return output()
+
+    def score(self):
+        return 0
+
+
 class ChaseBall(Strategy):
     def get_output(self):
         desired_ball_direction = self.opponent.goal_coords - self.ball.position
@@ -90,15 +99,19 @@ class ChaseBall(Strategy):
 
 class GrabBoost(Strategy):
     def get_output(self):
-        angle = self.player.angle_to(self.target.position)
-        if self.player.should_dodge_to(self.target.position):
-            return self.agent.dodge(self.target.position)
+        target = self.player.optimal_boost
+        angle = self.player.angle_to(target.position)
+        if self.player.should_dodge_to(target.position):
+            return self.agent.dodge(target.position)
         turn = angle * YAW_SENSITIVITY
         powerslide = self.player.should_powerslide(angle)
         boost = not powerslide and self.player.should_boost()
         return output(yaw=turn, speed=1, boost=boost, powerslide=powerslide)
 
     def score(self):
+        # TODO: write this function
+        return self.agent.boost_tracker.optimal_boost_score()
+        ##########
         self.target = self.player.optimal_boost
         if self.target is None:
             # No available boosts

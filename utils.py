@@ -76,6 +76,10 @@ class vec3:
     def ground_direction(self):
         return math.atan2(self.x, self.z)
 
+    def rotate_zx(self, angle):
+        self.z = self.z * math.cos(angle) - self.x * math.sin(angle)
+        self.x = self.z * math.sin(angle) + self.x * math.cos(angle)
+
     def length_squared(self):
         # idk how slow math.sqrt is
         return self.x**2 + self.y**2 + self.z**2
