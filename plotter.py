@@ -3,8 +3,8 @@ from ball import Ball
 import matplotlib.pyplot as plt
 
 ball = Ball()
-ball.velocity.set(10, 7, 20)
-ball.position.set(75, BALL_RADIUS, 6)
+ball.velocity.set(60, 7, 40)
+ball.position.set(60, BALL_RADIUS, 30)
 path = ball.predict_path(5/60)
 
 x = [b.position.x for b in path]

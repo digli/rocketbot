@@ -102,19 +102,20 @@ class Ball(KineticObject):
             mock.position = previous.position + (previous.velocity * timestep)
             # check bounces
             if abs(mock.position.x) > wall_x:
-                # pertrusion = math.copysign(wall_x - abs(mock.position.x), mock.position.x)
-                # mock.position.x = wall_z + (1 + perpendicular_loss) * pertrusion
-                # How do we keep ball from getting stuck in wall?
+                pertrusion = abs(mock.position.x) - wall_x
+                after_bounce = wall_x - (perpendicular_loss) * pertrusion
+                mock.position.x = math.copysign(after_bounce, mock.position.x)
                 mock.velocity.x *= -1 * perpendicular_loss
                 mock.velocity.z *= bounce_reduction
             if abs(mock.position.z) > wall_z:
-                # pertrusion = wall_z - abs(mock.position.z)
-                # mock.position.z += math.copysign(mock.position.z, pertrusion)
+                pertrusion = abs(mock.position.z) - wall_z
+                after_bounce = wall_z - (perpendicular_loss) * pertrusion
+                mock.position.z = math.copysign(after_bounce, mock.position.z)
                 mock.velocity.x *= bounce_reduction
                 mock.velocity.z *= -1 * perpendicular_loss
             # TODO: Curved walls / corners
             # Does ball lose speed upon bouncing on ground?
-            if mock.position.y - BALL_RADIUS < 0:
+            if mock.position.y < ground:
                 mock.position.y = 2 * BALL_RADIUS - mock.position.y
                 mock.velocity.y *= -1 * perpendicular_loss
             mock.velocity.x *= speed_loss
